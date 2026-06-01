@@ -1,25 +1,38 @@
 "use client";
 
 import { useEffect, useState } from "react";
+
 import { normalizePhone } from "@/src/utils/normalizePhone";
-import AddCanvassingButton from "@/components/buttons/AddCanvassingButton";
-import ViewActions from "@/components/actions/ViewActions";
-import MainLayout from "@/components/layout/MainLayout";
-import DataTable from "@/components/tables/DataTable";
-import DetailPopup from "@/components/popup/DetailPopup";
-import Pagination from "@/components/pagination/Pagination";
-import CanvassingModal from "@/components/modals/CanvassingModal";
-import ImportCsvPreviewModal from "@/components/modals/ImportCsvPreviewModal";
-import UploadPhotoModal from "@/components/modals/UploadPhotoModal";
-import AddPropertyModal from "@/components/modals/AddPropertyModal";
-import { supabase } from "@/lib/supabase";
 import { normalizeText } from "@/src/utils/normalizeText";
+
+import { supabase } from "@/lib/supabase";
+
+import MainLayout from "@/components/layout/MainLayout";
+
+import DataTable from "@/components/tables/DataTable";
+
+import Pagination from "@/components/pagination/Pagination";
+
+import DetailPopup from "@/components/popup/DetailPopup";
+
+import ViewActions from "@/components/actions/ViewActions";
+
+import AddCanvassingButton from "@/components/buttons/AddCanvassingButton";
+
+import CanvassingModal from "@/components/modals/CanvassingModal";
+
+import UploadPhotoModal from "@/components/modals/UploadPhotoModal";
+
+import AddPropertyModal from "@/components/modals/AddPropertyModal";
+
+import ImportCsvPreviewModal from "@/components/modals/ImportCsvPreviewModal";
 
 // =========================
 // TYPES
 // =========================
 
 type Canvassing = {
+
   canvassing_id?: string;
 
   canvassing_date?: string;
@@ -52,7 +65,17 @@ type Canvassing = {
 
   longitude?: string;
 
-  status?: string | React.ReactNode;
+  // =========================
+  // RAW STATUS
+  // =========================
+
+  status?: string;
+
+  // =========================
+  // UI
+  // =========================
+
+  status_badge?: React.ReactNode;
 
   no?: number;
 
@@ -66,6 +89,7 @@ type Canvassing = {
 // =========================
 
 const columns = [
+
   {
     key: "no",
     label: "No",
@@ -102,7 +126,7 @@ const columns = [
   },
 
   {
-    key: "status",
+    key: "status_badge",
     label: "Status",
   },
 
@@ -117,6 +141,7 @@ const columns = [
 // =========================
 
 const importColumns = [
+
   {
     key: "canvassing_date",
     label: "Canvassing Date",
@@ -297,7 +322,7 @@ export default function CanvassingPage() {
         });
 
       // =========================
-      // PROPERTY TYPE
+      // FILTER
       // =========================
 
       if (filterPropertyType) {
@@ -308,10 +333,6 @@ export default function CanvassingPage() {
         );
       }
 
-      // =========================
-      // DISTRICT
-      // =========================
-
       if (filterDistrict) {
 
         query = query.ilike(
@@ -320,10 +341,6 @@ export default function CanvassingPage() {
         );
       }
 
-      // =========================
-      // CITY
-      // =========================
-
       if (filterCity) {
 
         query = query.ilike(
@@ -331,10 +348,6 @@ export default function CanvassingPage() {
           `%${filterCity}%`
         );
       }
-
-      // =========================
-      // STATUS
-      // =========================
 
       if (filterStatus) {
 
@@ -418,10 +431,10 @@ export default function CanvassingPage() {
               ),
 
             // =========================
-            // STATUS
+            // STATUS BADGE
             // =========================
 
-            status: (
+            status_badge: (
 
               <div
                 className={`
@@ -488,9 +501,7 @@ export default function CanvassingPage() {
                         async () => {
 
                           const cleanPhone =
-                            item.phone
-                              ?.replace(/\D/g, "")
-                              ?.replace(/^0/, "62");
+                            item.phone || "";
 
                           await supabase
 
@@ -619,10 +630,6 @@ export default function CanvassingPage() {
                                     item.phone || ""
                                   );
 
-                                // ====================
-                                // FIND CONTACT
-                                // ====================
-
                                 const {
                                   data: contact,
                                 } = await supabase
@@ -637,10 +644,6 @@ export default function CanvassingPage() {
                                   )
 
                                   .single();
-
-                                // ====================
-                                // MAPPING
-                                // ====================
 
                                 setPropertyData({
 
@@ -731,167 +734,150 @@ export default function CanvassingPage() {
 
   async function handleImportToDatabase() {
 
-  try {
+    try {
 
-    const cleanedData =
-      await Promise.all(
+      const {
+        data: propertyTypes,
+      } = await supabase
 
-        csvData.map(async (item) => {
+        .from("property_type")
 
-          let finalPropertyTypeId =
-            null;
+        .select("*");
 
-          // =========================
-          // FIND / CREATE
-          // PROPERTY TYPE
-          // =========================
+      const cleanedData =
+        await Promise.all(
 
-          if (item.property_type) {
+          csvData.map(async (item) => {
 
-            const normalizedName =
-              normalizeText(
-                item.property_type
-              );
+            let finalPropertyTypeId =
+              null;
 
-            const {
-              data: propertyTypes,
-            } = await supabase
+            if (item.property_type) {
 
-              .from("property_type")
+              const normalizedName =
+                normalizeText(
+                  item.property_type
+                );
 
-              .select("*");
+              const existingType =
+                propertyTypes?.find(
+                  (type: any) =>
 
-            const existingType =
-              propertyTypes?.find(
-                (type: any) =>
+                    normalizeText(
+                      type.property_type_name
+                    ) === normalizedName
+                );
 
-                  normalizeText(
-                    type.property_type_name
-                  ) === normalizedName
-              );
+              if (existingType) {
 
-            // =========================
-            // EXISTING
-            // =========================
+                finalPropertyTypeId =
+                  existingType.property_type_id;
+              }
 
-            if (existingType) {
+              else {
 
-              finalPropertyTypeId =
-                existingType.property_type_id;
+                const {
+                  data: newType,
+                } = await supabase
+
+                  .from("property_type")
+
+                  .insert([
+                    {
+                      property_type_name:
+                        item.property_type.trim(),
+                    },
+                  ])
+
+                  .select()
+
+                  .single();
+
+                finalPropertyTypeId =
+                  newType?.property_type_id;
+              }
             }
 
-            // =========================
-            // CREATE NEW
-            // =========================
+            return {
 
-            else {
+              canvassing_date:
+                item.canvassing_date || null,
 
-              const {
-                data: newType,
-              } = await supabase
+              photo_url:
+                item.photo_url || "",
 
-                .from("property_type")
+              name:
+                item.name || "",
 
-                .insert([
-                  {
-                    property_type_name:
-                      item.property_type.trim(),
-                  },
-                ])
+              phone:
+                item.phone || "",
 
-                .select()
+              street:
+                item.street || "",
 
-                .single();
+              district:
+                item.district || "",
 
-              finalPropertyTypeId =
-                newType?.property_type_id;
-            }
-          }
+              city:
+                item.city || "",
 
-          // =========================
-          // RETURN DATA
-          // =========================
+              property_type:
+                item.property_type || "",
 
-          return {
+              property_type_id:
+                finalPropertyTypeId,
 
-            canvassing_date:
-              item.canvassing_date || null,
+              land_size:
+                item.land_size || "",
 
-            photo_url:
-              item.photo_url || "",
+              building_size:
+                item.building_size || "",
 
-            name:
-              item.name || "",
+              address:
+                item.address || "",
 
-            phone:
-              item.phone || "",
+              notes:
+                item.notes || "",
 
-            street:
-              item.street || "",
+              latitude:
+                item.latitude || "",
 
-            district:
-              item.district || "",
+              longitude:
+                item.longitude || "",
 
-            city:
-              item.city || "",
+              status:
+                "New",
+            };
+          })
+        );
 
-            property_type:
-              item.property_type || "",
+      const { error } =
+        await supabase
 
-            property_type_id:
-              finalPropertyTypeId,
+          .from("canvassing")
 
-            land_size:
-              item.land_size || "",
+          .insert(cleanedData);
 
-            building_size:
-              item.building_size || "",
+      if (error) {
 
-            address:
-              item.address || "",
+        console.log(error);
 
-            notes:
-              item.notes || "",
+        return;
+      }
 
-            latitude:
-              item.latitude || "",
-
-            longitude:
-              item.longitude || "",
-
-            status:
-              "New",
-          };
-        })
+      setOpenImportPreview(
+        false
       );
 
-    const { error } =
-      await supabase
+      setCsvData([]);
 
-        .from("canvassing")
+      fetchCanvassing();
 
-        .insert(cleanedData);
-
-    if (error) {
+    } catch (error) {
 
       console.log(error);
-
-      return;
     }
-
-    setOpenImportPreview(
-      false
-    );
-
-    setCsvData([]);
-
-    fetchCanvassing();
-
-  } catch (error) {
-
-    console.log(error);
   }
-}
 
   // =========================
   // TOTAL PAGES
@@ -967,8 +953,6 @@ export default function CanvassingPage() {
           "
         >
 
-          {/* PROPERTY TYPE */}
-
           <select
             value={filterPropertyType}
             onChange={(e) =>
@@ -1010,8 +994,6 @@ export default function CanvassingPage() {
 
           </select>
 
-          {/* DISTRICT */}
-
           <input
             type="text"
             placeholder="District"
@@ -1029,8 +1011,6 @@ export default function CanvassingPage() {
             "
           />
 
-          {/* CITY */}
-
           <input
             type="text"
             placeholder="City"
@@ -1047,8 +1027,6 @@ export default function CanvassingPage() {
               py-2
             "
           />
-
-          {/* STATUS */}
 
           <select
             value={filterStatus}
@@ -1104,8 +1082,6 @@ export default function CanvassingPage() {
             </option>
 
           </select>
-
-          {/* RESET */}
 
           <button
             onClick={() => {
@@ -1319,7 +1295,7 @@ export default function CanvassingPage() {
           }}
         />
 
-        {/* OCR MODAL */}
+        {/* OCR */}
 
         <UploadPhotoModal
 
