@@ -13,6 +13,8 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Calendar,
+  MessageSquare,
+  ClipboardList,
 } from "lucide-react";
 
 const menus = [
@@ -34,7 +36,7 @@ const menus = [
   {
     name: "Inquiries",
     href: "/inquiries",
-    icon: Building2,
+    icon: ClipboardList,
   },
   {
     name: "Listings",
@@ -52,11 +54,17 @@ const menus = [
     icon: Briefcase,
   },
 
-    {
+  {
     name: "Meetings",
     href: "/meetings",
     icon: Calendar,
-    },
+  },
+  {
+    name: "Communications",
+    href: "/communications",
+    icon: MessageSquare,
+  },
+
 ];
 
 interface SidebarProps {

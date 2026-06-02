@@ -9,7 +9,7 @@ import MainLayout from "@/components/layout/MainLayout";
 
 import DataTable from "@/components/tables/DataTable";
 
-import Pagination from "@/components/pagination/Pagination";
+import Pagination from "@/components/ui/Pagination";
 
 import AddButton from "@/components/buttons/AddButton";
 

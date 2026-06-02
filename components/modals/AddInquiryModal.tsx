@@ -7,18 +7,26 @@ import {
 
 import { supabase } from "@/lib/supabase";
 
+// =========================
+// TYPES
+// =========================
+
 type AddInquiryModalProps = {
   open: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  contact?: any;
+  selectedContact?: any;
 };
+
+// =========================
+// COMPONENT
+// =========================
 
 export default function AddInquiryModal({
   open,
   onClose,
   onSuccess,
-  contact,
+  selectedContact,
 }: AddInquiryModalProps) {
 
   // =========================
@@ -30,9 +38,6 @@ export default function AddInquiryModal({
 
   const [saving, setSaving] =
     useState(false);
-
-  const [leads, setLeads] =
-    useState<any[]>([]);
 
   const [sources, setSources] =
     useState<any[]>([]);
@@ -46,7 +51,7 @@ export default function AddInquiryModal({
   ] = useState<any[]>([]);
 
   // =========================
-  // FORM DATA
+  // FORM
   // =========================
 
   const [
@@ -55,8 +60,6 @@ export default function AddInquiryModal({
   ] = useState({
 
     contact_id: "",
-
-    lead_id: "",
 
     source_id: "",
 
@@ -67,8 +70,6 @@ export default function AddInquiryModal({
     property_type_id: "",
 
     market_type: "Sale",
-
-    requirement_summary: "",
 
     district: "",
 
@@ -86,25 +87,10 @@ export default function AddInquiryModal({
 
     priority: "WARM",
 
+    requirement_summary: "",
+
     notes: "",
   });
-
-  // =========================
-  // FORMAT RUPIAH
-  // =========================
-
-  function formatRupiah(
-    value: string
-  ) {
-
-    if (!value) return "";
-
-    return new Intl.NumberFormat(
-      "id-ID"
-    ).format(
-      Number(value)
-    );
-  }
 
   // =========================
   // FETCH DROPDOWNS
@@ -118,8 +104,6 @@ export default function AddInquiryModal({
 
       const [
 
-        leadsRes,
-
         sourcesRes,
 
         statusesRes,
@@ -127,25 +111,6 @@ export default function AddInquiryModal({
         propertyTypesRes,
 
       ] = await Promise.all([
-
-        supabase
-
-          .from("leads")
-
-          .select(`
-            leads_id,
-            contacts (
-              name,
-              phone
-            )
-          `)
-
-          .order(
-            "created_at",
-            {
-              ascending: false,
-            }
-          ),
 
         supabase
 
@@ -200,10 +165,6 @@ export default function AddInquiryModal({
           ),
       ]);
 
-      setLeads(
-        leadsRes.data || []
-      );
-
       setSources(
         sourcesRes.data || []
       );
@@ -239,12 +200,18 @@ export default function AddInquiryModal({
     setFormData({
 
       contact_id:
-        contact?.contact_id || "",
-
-      lead_id: "",
+        selectedContact?.contact_id
+          ? String(
+              selectedContact.contact_id
+            )
+          : "",
 
       source_id:
-        contact?.source_id || "",
+        selectedContact?.source_id
+          ? String(
+              selectedContact.source_id
+            )
+          : "",
 
       inquiry_status_id: "",
 
@@ -253,8 +220,6 @@ export default function AddInquiryModal({
       property_type_id: "",
 
       market_type: "Sale",
-
-      requirement_summary: "",
 
       district: "",
 
@@ -272,10 +237,15 @@ export default function AddInquiryModal({
 
       priority: "WARM",
 
+      requirement_summary: "",
+
       notes: "",
     });
 
-  }, [open, contact]);
+  }, [
+    open,
+    selectedContact,
+  ]);
 
   // =========================
   // HANDLE CHANGE
@@ -316,7 +286,9 @@ export default function AddInquiryModal({
           {
 
             contact_id:
-              formData.contact_id,
+              Number(
+                formData.contact_id
+              ),
 
             inquiry_id:
               inquiryId,
@@ -402,61 +374,98 @@ export default function AddInquiryModal({
       }
 
       // =========================
-      // INSERT
+      // PAYLOAD
       // =========================
 
       const payload = {
 
         contact_id:
-          formData.contact_id || null,
-
-        lead_id:
-          formData.lead_id || null,
+          formData.contact_id
+            ? Number(
+                formData.contact_id
+              )
+            : null,
 
         source_id:
-          formData.source_id || null,
+          formData.source_id
+            ? Number(
+                formData.source_id
+              )
+            : null,
 
         inquiry_status_id:
-          formData.inquiry_status_id || null,
-
-        inquiry_category:
-          formData.inquiry_category || null,
+          formData.inquiry_status_id
+            ? Number(
+                formData.inquiry_status_id
+              )
+            : null,
 
         property_type_id:
-          formData.property_type_id || null,
-
-        market_type:
-          formData.market_type || null,
-
-        requirement_summary:
-          formData.requirement_summary || null,
-
-        district:
-          formData.district || null,
-
-        city:
-          formData.city || null,
+          formData.property_type_id
+            ? Number(
+                formData.property_type_id
+              )
+            : null,
 
         budget_min:
-          formData.budget_min || null,
+          formData.budget_min
+            ? Number(
+                formData.budget_min
+              )
+            : null,
 
         budget_max:
-          formData.budget_max || null,
+          formData.budget_max
+            ? Number(
+                formData.budget_max
+              )
+            : null,
+
+        inquiry_category:
+          formData.inquiry_category,
+
+        market_type:
+          formData.market_type,
+
+        district:
+          formData.district ||
+
+          null,
+
+        city:
+          formData.city ||
+
+          null,
 
         next_action:
-          formData.next_action || null,
+          formData.next_action ||
+
+          null,
 
         last_followup:
-          formData.last_followup || null,
+          formData.last_followup ||
+
+          null,
 
         next_followup_at:
-          formData.next_followup_at || null,
+          formData.next_followup_at ||
+
+          null,
 
         priority:
-          formData.priority || null,
+          formData.priority ||
+
+          null,
+
+        requirement_summary:
+          formData.requirement_summary ||
+
+          null,
 
         notes:
-          formData.notes || null,
+          formData.notes ||
+
+          null,
 
         inquiry_date:
           new Date(),
@@ -467,6 +476,10 @@ export default function AddInquiryModal({
         updated_at:
           new Date(),
       };
+
+      // =========================
+      // INSERT
+      // =========================
 
       const {
 
@@ -496,7 +509,7 @@ export default function AddInquiryModal({
       }
 
       // =========================
-      // CREATE ACTIVITY
+      // ACTIVITY
       // =========================
 
       await createActivity(
@@ -534,10 +547,10 @@ export default function AddInquiryModal({
         fixed
         inset-0
         z-50
+        bg-black/50
         flex
         items-center
         justify-center
-        bg-black/50
         p-4
       "
     >
@@ -545,13 +558,14 @@ export default function AddInquiryModal({
       <div
         className="
           w-full
-          max-w-4xl
-          rounded-3xl
-          bg-white
-          p-6
-          space-y-6
+          max-w-5xl
           max-h-[90vh]
           overflow-y-auto
+
+          rounded-3xl
+          bg-white
+
+          shadow-2xl
         "
       >
 
@@ -559,6 +573,10 @@ export default function AddInquiryModal({
 
         <div
           className="
+            border-b
+            px-6
+            py-5
+
             flex
             items-center
             justify-between
@@ -578,9 +596,9 @@ export default function AddInquiryModal({
 
             <p
               className="
+                mt-1
                 text-sm
                 text-gray-500
-                mt-1
               "
             >
               Create operational inquiry
@@ -601,482 +619,436 @@ export default function AddInquiryModal({
 
         </div>
 
-        {/* CONTACT */}
+        {/* BODY */}
 
-        <div
-          className="
-            border
-            rounded-2xl
-            p-4
-            bg-gray-50
-          "
-        >
+        <div className="p-6 space-y-6">
+
+          {/* CONTACT */}
 
           <div
             className="
-              text-sm
-              text-gray-500
+              rounded-2xl
+              border
+              bg-gray-50
+              p-5
             "
           >
-            Contact
+
+            <div
+              className="
+                text-xs
+                font-medium
+                uppercase
+                tracking-wide
+                text-gray-500
+              "
+            >
+              Contact Information
+            </div>
+
+            {selectedContact ? (
+
+              <div className="mt-3">
+
+                <div
+                  className="
+                    text-lg
+                    font-semibold
+                  "
+                >
+                  {
+                    selectedContact.name
+                  }
+                </div>
+
+                <div
+                  className="
+                    text-sm
+                    text-gray-600
+                  "
+                >
+                  {
+                    selectedContact.phone
+                  }
+                </div>
+
+              </div>
+
+            ) : (
+
+              <div
+                className="
+                  mt-3
+                  text-sm
+                  text-gray-400
+                "
+              >
+                No contact selected
+              </div>
+
+            )}
+
           </div>
 
-          <div
-            className="
-              text-lg
-              font-semibold
-            "
-          >
-            {contact?.name || "-"}
-          </div>
+          {loading ? (
 
-          <div
-            className="
-              text-sm
-              text-gray-600
-            "
-          >
-            {contact?.phone || "-"}
-          </div>
+            <div
+              className="
+                py-10
+                text-center
+                text-gray-500
+              "
+            >
+              Loading...
+            </div>
+
+          ) : (
+
+            <>
+
+              {/* REQUIREMENT */}
+
+              <div
+                className="
+                  rounded-2xl
+                  border
+                  p-5
+                  space-y-5
+                "
+              >
+
+                <div
+                  className="
+                    text-sm
+                    font-semibold
+                  "
+                >
+                  Requirement Overview
+                </div>
+
+                <div
+                  className="
+                    grid
+                    grid-cols-1
+                    md:grid-cols-2
+                    gap-4
+                  "
+                >
+
+                  <FormSelect
+                    label="Inquiry Category"
+                    name="inquiry_category"
+                    value={
+                      formData.inquiry_category
+                    }
+                    onChange={
+                      handleChange
+                    }
+                    options={[
+                      "Buy",
+                      "Rent",
+                      "Sell",
+                    ]}
+                  />
+
+                  <FormSelect
+                    label="Market Type"
+                    name="market_type"
+                    value={
+                      formData.market_type
+                    }
+                    onChange={
+                      handleChange
+                    }
+                    options={[
+                      "Sale",
+                      "Rent",
+                    ]}
+                  />
+
+                  <PropertyTypeSelect
+                    value={
+                      formData.property_type_id
+                    }
+                    onChange={
+                      handleChange
+                    }
+                    options={
+                      propertyTypes
+                    }
+                  />
+
+                  <FormSelect
+                    label="Priority"
+                    name="priority"
+                    value={
+                      formData.priority
+                    }
+                    onChange={
+                      handleChange
+                    }
+                    options={[
+                      "HOT",
+                      "WARM",
+                      "COLD",
+                    ]}
+                  />
+
+                </div>
+
+              </div>
+
+              {/* LOCATION */}
+
+              <div
+                className="
+                  rounded-2xl
+                  border
+                  p-5
+                  space-y-5
+                "
+              >
+
+                <div
+                  className="
+                    text-sm
+                    font-semibold
+                  "
+                >
+                  Location & Budget
+                </div>
+
+                <div
+                  className="
+                    grid
+                    grid-cols-1
+                    md:grid-cols-2
+                    gap-4
+                  "
+                >
+
+                  <FormInput
+                    label="District"
+                    name="district"
+                    value={
+                      formData.district
+                    }
+                    onChange={
+                      handleChange
+                    }
+                    placeholder="Tebet"
+                  />
+
+                  <FormInput
+                    label="City"
+                    name="city"
+                    value={
+                      formData.city
+                    }
+                    onChange={
+                      handleChange
+                    }
+                    placeholder="Jakarta Selatan"
+                  />
+
+                  <CurrencyInput
+                    label="Budget Min"
+                    value={
+                      formData.budget_min
+                    }
+                    onChange={(value: string) =>
+                      setFormData({
+                        ...formData,
+                        budget_min: value,
+                      })
+                    }
+                  />
+
+                  <CurrencyInput
+                    label="Budget Max"
+                    value={
+                      formData.budget_max
+                    }
+                    onChange={(value: string) =>
+                      setFormData({
+                        ...formData,
+                        budget_max: value,
+                      })
+                    }
+                  />
+
+                </div>
+
+              </div>
+
+              {/* WORKFLOW */}
+
+              <div
+                className="
+                  rounded-2xl
+                  border
+                  p-5
+                  space-y-5
+                "
+              >
+
+                <div
+                  className="
+                    text-sm
+                    font-semibold
+                  "
+                >
+                  Workflow & Followup
+                </div>
+
+                <div
+                  className="
+                    grid
+                    grid-cols-1
+                    md:grid-cols-2
+                    gap-4
+                  "
+                >
+
+                  <FormInput
+                    label="Next Action"
+                    name="next_action"
+                    value={
+                      formData.next_action
+                    }
+                    onChange={
+                      handleChange
+                    }
+                    placeholder="
+                      Send listing / Matching property
+                    "
+                  />
+
+                  <StatusSelect
+                    value={
+                      formData.inquiry_status_id
+                    }
+                    onChange={
+                      handleChange
+                    }
+                    options={
+                      statuses
+                    }
+                  />
+
+                  <FormInput
+                    label="Last Followup"
+                    name="last_followup"
+                    type="datetime-local"
+                    value={
+                      formData.last_followup
+                    }
+                    onChange={
+                      handleChange
+                    }
+                  />
+
+                  <FormInput
+                    label="Next Followup"
+                    name="next_followup_at"
+                    type="datetime-local"
+                    value={
+                      formData.next_followup_at
+                    }
+                    onChange={
+                      handleChange
+                    }
+                  />
+
+                  <SourceSelect
+                    value={
+                      formData.source_id
+                    }
+                    onChange={
+                      handleChange
+                    }
+                    options={
+                      sources
+                    }
+                  />
+
+                </div>
+
+              </div>
+
+              {/* NOTES */}
+
+              <div
+                className="
+                  rounded-2xl
+                  border
+                  p-5
+                  space-y-5
+                "
+              >
+
+                <div
+                  className="
+                    text-sm
+                    font-semibold
+                  "
+                >
+                  Requirement Notes
+                </div>
+
+                <div className="space-y-4">
+
+                  <FormTextarea
+                    label="
+                      Requirement Summary
+                    "
+                    name="
+                      requirement_summary
+                    "
+                    value={
+                      formData.requirement_summary
+                    }
+                    onChange={
+                      handleChange
+                    }
+                    rows={5}
+                    placeholder="
+                      Client requirement...
+                    "
+                  />
+
+                  <FormTextarea
+                    label="Notes"
+                    name="notes"
+                    value={
+                      formData.notes
+                    }
+                    onChange={
+                      handleChange
+                    }
+                    rows={4}
+                    placeholder="
+                      Additional notes...
+                    "
+                  />
+
+                </div>
+
+              </div>
+
+            </>
+
+          )}
 
         </div>
-
-        {/* FORM */}
-
-        {loading ? (
-
-          <div
-            className="
-              py-10
-              text-center
-              text-gray-500
-            "
-          >
-            Loading...
-          </div>
-
-        ) : (
-
-          <div
-            className="
-              grid
-              grid-cols-1
-              md:grid-cols-2
-              gap-4
-            "
-          >
-
-            {/* CATEGORY */}
-
-            <FormSelect
-              label="Inquiry Category"
-              name="inquiry_category"
-              value={
-                formData.inquiry_category
-              }
-              onChange={
-                handleChange
-              }
-              options={[
-                "Buy",
-                "Rent",
-                "Sell",
-              ]}
-            />
-
-            {/* MARKET */}
-
-            <FormSelect
-              label="Market Type"
-              name="market_type"
-              value={
-                formData.market_type
-              }
-              onChange={
-                handleChange
-              }
-              options={[
-                "Sale",
-                "Rent",
-              ]}
-            />
-
-            {/* PROPERTY TYPE */}
-
-            <div className="space-y-2">
-
-              <label
-                className="
-                  text-sm
-                  font-medium
-                "
-              >
-                Property Type
-              </label>
-
-              <select
-                name="property_type_id"
-                value={
-                  formData.property_type_id
-                }
-                onChange={
-                  handleChange
-                }
-                className="
-                  w-full
-                  border
-                  rounded-xl
-                  px-4
-                  py-3
-                "
-              >
-
-                <option value="">
-                  Select Property Type
-                </option>
-
-                {propertyTypes.map(
-                  (item) => (
-
-                    <option
-                      key={
-                        item.property_type_id
-                      }
-                      value={
-                        item.property_type_id
-                      }
-                    >
-                      {
-                        item.property_type_name
-                      }
-                    </option>
-                  )
-                )}
-
-              </select>
-
-            </div>
-
-            {/* PRIORITY */}
-
-            <FormSelect
-              label="Priority"
-              name="priority"
-              value={
-                formData.priority
-              }
-              onChange={
-                handleChange
-              }
-              options={[
-                "HOT",
-                "WARM",
-                "COLD",
-              ]}
-            />
-
-            {/* DISTRICT */}
-
-            <FormInput
-              label="District"
-              name="district"
-              value={
-                formData.district
-              }
-              onChange={
-                handleChange
-              }
-              placeholder="Tebet"
-            />
-
-            {/* CITY */}
-
-            <FormInput
-              label="City"
-              name="city"
-              value={
-                formData.city
-              }
-              onChange={
-                handleChange
-              }
-              placeholder="Jakarta Selatan"
-            />
-
-            {/* BUDGET MIN */}
-
-            <CurrencyInput
-              label="Budget Min"
-              value={
-                formData.budget_min
-              }
-              onChange={(value: string) =>
-                setFormData({
-                  ...formData,
-                  budget_min: value,
-                })
-              }
-            />
-
-            {/* BUDGET MAX */}
-
-            <CurrencyInput
-              label="Budget Max"
-              value={
-                formData.budget_max
-              }
-              onChange={(value: string) =>
-                setFormData({
-                  ...formData,
-                  budget_max: value,
-                })
-              }
-            />
-
-            {/* NEXT ACTION */}
-
-            <FormInput
-              label="Next Action"
-              name="next_action"
-              value={
-                formData.next_action
-              }
-              onChange={
-                handleChange
-              }
-              placeholder="Send listing / Matching property"
-            />
-
-            {/* LAST FOLLOWUP */}
-
-            <FormInput
-              label="Last Followup"
-              name="last_followup"
-              type="datetime-local"
-              value={
-                formData.last_followup
-              }
-              onChange={
-                handleChange
-              }
-            />
-
-            {/* NEXT FOLLOWUP */}
-
-            <FormInput
-              label="Next Followup"
-              name="next_followup_at"
-              type="datetime-local"
-              value={
-                formData.next_followup_at
-              }
-              onChange={
-                handleChange
-              }
-            />
-
-            {/* STATUS */}
-
-            <div className="space-y-2">
-
-              <label
-                className="
-                  text-sm
-                  font-medium
-                "
-              >
-                Inquiry Status
-              </label>
-
-              <select
-                name="inquiry_status_id"
-                value={
-                  formData.inquiry_status_id
-                }
-                onChange={
-                  handleChange
-                }
-                className="
-                  w-full
-                  border
-                  rounded-xl
-                  px-4
-                  py-3
-                "
-              >
-
-                <option value="">
-                  Select Status
-                </option>
-
-                {statuses.map(
-                  (item) => (
-
-                    <option
-                      key={
-                        item.inquiry_status_id
-                      }
-                      value={
-                        item.inquiry_status_id
-                      }
-                    >
-                      {
-                        item.inquiry_status_name
-                      }
-                    </option>
-                  )
-                )}
-
-              </select>
-
-            </div>
-
-            {/* SOURCE */}
-
-            <div className="space-y-2">
-
-              <label
-                className="
-                  text-sm
-                  font-medium
-                "
-              >
-                Source
-              </label>
-
-              <select
-                name="source_id"
-                value={
-                  formData.source_id
-                }
-                onChange={
-                  handleChange
-                }
-                className="
-                  w-full
-                  border
-                  rounded-xl
-                  px-4
-                  py-3
-                "
-              >
-
-                <option value="">
-                  Select Source
-                </option>
-
-                {sources.map(
-                  (item) => (
-
-                    <option
-                      key={
-                        item.source_id
-                      }
-                      value={
-                        item.source_id
-                      }
-                    >
-                      {
-                        item.source_name
-                      }
-                    </option>
-                  )
-                )}
-
-              </select>
-
-            </div>
-
-            {/* REQUIREMENT */}
-
-            <div
-              className="
-                md:col-span-2
-                space-y-2
-              "
-            >
-
-              <label
-                className="
-                  text-sm
-                  font-medium
-                "
-              >
-                Requirement Summary
-              </label>
-
-              <textarea
-                rows={5}
-                name="requirement_summary"
-                value={
-                  formData.requirement_summary
-                }
-                onChange={
-                  handleChange
-                }
-                placeholder="
-                  Client requirement...
-                "
-                className="
-                  w-full
-                  border
-                  rounded-xl
-                  px-4
-                  py-3
-                "
-              />
-
-            </div>
-
-            {/* NOTES */}
-
-            <div
-              className="
-                md:col-span-2
-                space-y-2
-              "
-            >
-
-              <label
-                className="
-                  text-sm
-                  font-medium
-                "
-              >
-                Notes
-              </label>
-
-              <textarea
-                rows={4}
-                name="notes"
-                value={
-                  formData.notes
-                }
-                onChange={
-                  handleChange
-                }
-                placeholder="
-                  Additional notes...
-                "
-                className="
-                  w-full
-                  border
-                  rounded-xl
-                  px-4
-                  py-3
-                "
-              />
-
-            </div>
-
-          </div>
-
-        )}
 
         {/* FOOTER */}
 
         <div
           className="
+            border-t
+            p-6
+
             flex
             justify-end
             gap-3
@@ -1086,8 +1058,8 @@ export default function AddInquiryModal({
           <button
             onClick={onClose}
             className="
-              border
               rounded-xl
+              border
               px-5
               py-3
               hover:bg-gray-100
@@ -1102,11 +1074,11 @@ export default function AddInquiryModal({
             }
             disabled={saving}
             className="
-              bg-black
-              text-white
               rounded-xl
+              bg-black
               px-5
               py-3
+              text-white
               disabled:opacity-50
             "
           >
@@ -1124,22 +1096,14 @@ export default function AddInquiryModal({
 }
 
 // =========================
-// FORM INPUT
+// INPUT
 // =========================
 
 function FormInput({
 
   label,
 
-  name,
-
-  value,
-
-  onChange,
-
-  type = "text",
-
-  placeholder = "",
+  ...props
 
 }: any) {
 
@@ -1157,15 +1121,11 @@ function FormInput({
       </label>
 
       <input
-        type={type}
-        name={name}
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
+        {...props}
         className="
           w-full
-          border
           rounded-xl
+          border
           px-4
           py-3
         "
@@ -1176,20 +1136,56 @@ function FormInput({
 }
 
 // =========================
-// FORM SELECT
+// TEXTAREA
+// =========================
+
+function FormTextarea({
+
+  label,
+
+  ...props
+
+}: any) {
+
+  return (
+
+    <div className="space-y-2">
+
+      <label
+        className="
+          text-sm
+          font-medium
+        "
+      >
+        {label}
+      </label>
+
+      <textarea
+        {...props}
+        className="
+          w-full
+          rounded-xl
+          border
+          px-4
+          py-3
+        "
+      />
+
+    </div>
+  );
+}
+
+// =========================
+// SELECT
 // =========================
 
 function FormSelect({
 
   label,
 
-  name,
-
-  value,
-
-  onChange,
-
   options,
+
+  ...props
 
 }: any) {
 
@@ -1207,13 +1203,11 @@ function FormSelect({
       </label>
 
       <select
-        name={name}
-        value={value}
-        onChange={onChange}
+        {...props}
         className="
           w-full
-          border
           rounded-xl
+          border
           px-4
           py-3
         "
@@ -1240,7 +1234,215 @@ function FormSelect({
 }
 
 // =========================
-// CURRENCY INPUT
+// PROPERTY TYPE
+// =========================
+
+function PropertyTypeSelect({
+
+  value,
+
+  onChange,
+
+  options,
+
+}: any) {
+
+  return (
+
+    <div className="space-y-2">
+
+      <label
+        className="
+          text-sm
+          font-medium
+        "
+      >
+        Property Type
+      </label>
+
+      <select
+        name="
+          property_type_id
+        "
+        value={value}
+        onChange={onChange}
+        className="
+          w-full
+          rounded-xl
+          border
+          px-4
+          py-3
+        "
+      >
+
+        <option value="">
+          Select Property Type
+        </option>
+
+        {options.map(
+          (item: any) => (
+
+            <option
+              key={
+                item.property_type_id
+              }
+              value={
+                item.property_type_id
+              }
+            >
+              {
+                item.property_type_name
+              }
+            </option>
+          )
+        )}
+
+      </select>
+
+    </div>
+  );
+}
+
+// =========================
+// STATUS
+// =========================
+
+function StatusSelect({
+
+  value,
+
+  onChange,
+
+  options,
+
+}: any) {
+
+  return (
+
+    <div className="space-y-2">
+
+      <label
+        className="
+          text-sm
+          font-medium
+        "
+      >
+        Inquiry Status
+      </label>
+
+      <select
+        name="
+          inquiry_status_id
+        "
+        value={value}
+        onChange={onChange}
+        className="
+          w-full
+          rounded-xl
+          border
+          px-4
+          py-3
+        "
+      >
+
+        <option value="">
+          Select Status
+        </option>
+
+        {options.map(
+          (item: any) => (
+
+            <option
+              key={
+                item.inquiry_status_id
+              }
+              value={
+                item.inquiry_status_id
+              }
+            >
+              {
+                item.inquiry_status_name
+              }
+            </option>
+          )
+        )}
+
+      </select>
+
+    </div>
+  );
+}
+
+// =========================
+// SOURCE
+// =========================
+
+function SourceSelect({
+
+  value,
+
+  onChange,
+
+  options,
+
+}: any) {
+
+  return (
+
+    <div className="space-y-2">
+
+      <label
+        className="
+          text-sm
+          font-medium
+        "
+      >
+        Source
+      </label>
+
+      <select
+        name="source_id"
+        value={value}
+        onChange={onChange}
+        className="
+          w-full
+          rounded-xl
+          border
+          px-4
+          py-3
+        "
+      >
+
+        <option value="">
+          Select Source
+        </option>
+
+        {options.map(
+          (item: any) => (
+
+            <option
+              key={
+                item.source_id
+              }
+              value={
+                item.source_id
+              }
+            >
+              {
+                item.source_name
+              }
+            </option>
+          )
+        )}
+
+      </select>
+
+    </div>
+  );
+}
+
+// =========================
+// CURRENCY
 // =========================
 
 function CurrencyInput({
@@ -1264,6 +1466,42 @@ function CurrencyInput({
     ).format(
       Number(value)
     );
+  }
+
+  function formatShort(
+    value: string
+  ) {
+
+    const number =
+      Number(value);
+
+    if (!number) return "";
+
+    if (
+      number >=
+      1000000000
+    ) {
+
+      return `≈ ${(
+        number /
+        1000000000
+      ).toFixed(2)} M`;
+    }
+
+    if (
+      number >=
+      1000000
+    ) {
+
+      return `≈ ${(
+        number /
+        1000000
+      ).toFixed(0)} Jt`;
+    }
+
+    return `≈ ${new Intl.NumberFormat(
+      "id-ID"
+    ).format(number)}`;
   }
 
   return (
@@ -1310,8 +1548,8 @@ function CurrencyInput({
           }}
           className="
             w-full
-            border
             rounded-xl
+            border
             pl-12
             pr-4
             py-3
@@ -1320,16 +1558,20 @@ function CurrencyInput({
 
       </div>
 
-      <div
-        className="
-          text-xs
-          text-gray-500
-        "
-      >
-        100.000.000 = 100 Jt
-        <br />
-        1.000.000.000 = 1 M
-      </div>
+      {value && (
+
+        <div
+          className="
+            text-xs
+            text-gray-500
+          "
+        >
+          {formatShort(
+            value
+          )}
+        </div>
+
+      )}
 
     </div>
   );

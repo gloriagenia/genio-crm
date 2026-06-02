@@ -588,10 +588,9 @@ ${result.address || "-"}
         inset-0
         z-50
         bg-black/50
-        flex
-        items-center
-        justify-center
-        p-4
+        overflow-y-auto
+        p-3
+        lg:p-6
       "
     >
 
@@ -604,8 +603,9 @@ ${result.address || "-"}
           max-w-5xl
           rounded-3xl
           relative
-          overflow-hidden
           max-h-[92vh]
+          overflow-y-auto
+          my-4
         "
       >
 
@@ -624,7 +624,12 @@ ${result.address || "-"}
           <X size={28} />
         </button>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2">
+        <div className="
+        grid 
+        grid-cols-1 
+        lg:grid-cols-2
+        min-h-full
+        ">
 
           {/* LEFT */}
 
@@ -852,9 +857,8 @@ ${result.address || "-"}
 
               <div
                 className="
-                  p-6
-                  overflow-y-auto
-                  max-h-[92vh]
+                  p-5
+                  lg:p-6
                 "
               >
 

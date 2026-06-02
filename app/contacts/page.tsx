@@ -7,11 +7,15 @@ import {
 
 import MainLayout from "@/components/layout/MainLayout";
 
-import Pagination from "@/components/pagination/Pagination";
+import Pagination from "@/components/ui/Pagination";
 
 import AddContactModal from "@/components/modals/AddContactModal";
 
 import EditContactModal from "@/components/modals/EditContactModal";
+
+import AddLeadsModal from "@/components/modals/AddLeadsModal";
+
+import AddInquiryModal from "@/components/modals/AddInquiryModal";
 
 import ContactDetailPopUp from "@/components/contacts/ContactDetailPopUp";
 
@@ -127,6 +131,11 @@ export default function ContactsPage() {
   ] = useState<any>(null);
 
   const [
+    selectedContact,
+    setSelectedContact,
+  ] = useState<any>(null);
+
+  const [
     currentPage,
     setCurrentPage,
   ] = useState(1);
@@ -148,6 +157,16 @@ export default function ContactsPage() {
   const [
     openEditModal,
     setOpenEditModal,
+  ] = useState(false);
+
+  const [
+    openAddLeadModal,
+    setOpenAddLeadModal,
+  ] = useState(false);
+
+  const [
+    openAddInquiryModal,
+    setOpenAddInquiryModal,
   ] = useState(false);
 
   const [editData, setEditData] =
@@ -294,10 +313,8 @@ export default function ContactsPage() {
                 className={`
                   inline-flex
                   rounded-full
-
                   px-3
                   py-1
-
                   text-xs
                   font-semibold
 
@@ -360,6 +377,36 @@ export default function ContactsPage() {
 
                     {
                       label:
+                        "Create Lead",
+
+                      onClick: () => {
+                        setSelectedContact(
+                          item
+                        );
+
+                        setOpenAddLeadModal(
+                          true
+                        );
+                      },
+                    },
+
+                    {
+                      label:
+                        "Create Inquiry",
+
+                      onClick: () => {
+                        setSelectedContact(
+                          item
+                        );
+
+                        setOpenAddInquiryModal(
+                          true
+                        );
+                      },
+                    },
+
+                    {
+                      label:
                         "Edit",
 
                       onClick: () => {
@@ -371,6 +418,49 @@ export default function ContactsPage() {
                           true
                         );
                       },
+                    },
+
+                    {
+                      label:
+                        "Delete",
+
+                      onClick:
+                        async () => {
+                          const confirmDelete =
+                            window.confirm(
+                              "Delete this contact?"
+                            );
+
+                          if (
+                            !confirmDelete
+                          )
+                            return;
+
+                          const {
+                            error,
+                          } =
+                            await supabase
+                              .from(
+                                "contacts"
+                              )
+                              .delete()
+                              .eq(
+                                "id",
+                                item.id
+                              );
+
+                          if (
+                            error
+                          ) {
+                            console.log(
+                              error
+                            );
+
+                            return;
+                          }
+
+                          fetchContacts();
+                        },
                     },
                   ]}
                 />
@@ -419,6 +509,7 @@ export default function ContactsPage() {
   return (
     <MainLayout>
       <div className="space-y-6">
+
         {/* HEADER */}
 
         <ContactsHeader
@@ -471,7 +562,7 @@ export default function ContactsPage() {
           }}
         />
 
-        {/* MOBILE CARDS */}
+        {/* MOBILE */}
 
         <ContactsMobileCard
           data={data}
@@ -485,7 +576,7 @@ export default function ContactsPage() {
           }}
         />
 
-        {/* DESKTOP TABLE */}
+        {/* TABLE */}
 
         <ContactsTable
           loading={loading}
@@ -576,7 +667,69 @@ export default function ContactsPage() {
           }}
         />
 
-        {/* DETAIL POPUP */}
+        {/* ADD LEAD */}
+
+        <AddLeadsModal
+          open={
+            openAddLeadModal
+          }
+          selectedContact={
+            selectedContact
+          }
+          onClose={() => {
+            setOpenAddLeadModal(
+              false
+            );
+
+            setSelectedContact(
+              null
+            );
+          }}
+          onSuccess={() => {
+            fetchContacts();
+
+            setOpenAddLeadModal(
+              false
+            );
+
+            setSelectedContact(
+              null
+            );
+          }}
+        />
+
+        {/* ADD INQUIRY */}
+
+        <AddInquiryModal
+          open={
+            openAddInquiryModal
+          }
+          selectedContact={
+            selectedContact
+          }
+          onClose={() => {
+            setOpenAddInquiryModal(
+              false
+            );
+
+            setSelectedContact(
+              null
+            );
+          }}
+          onSuccess={() => {
+            fetchContacts();
+
+            setOpenAddInquiryModal(
+              false
+            );
+
+            setSelectedContact(
+              null
+            );
+          }}
+        />
+
+        {/* DETAIL */}
 
         <ContactDetailPopUp
           open={!!selectedRow}
@@ -596,6 +749,7 @@ export default function ContactsPage() {
             );
           }}
         />
+
       </div>
     </MainLayout>
   );
