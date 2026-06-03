@@ -1,10 +1,27 @@
 "use client";
 
 import {
+  MessageCircle,
   Phone,
-  CalendarClock,
-  UserRound,
 } from "lucide-react";
+
+import ContactAvatar from "@/components/contacts/ContactAvatar";
+
+import ContactQuickAction from "@/components/contacts/ContactQuickAction";
+
+import ContactTypeBadge from "@/components/contacts/ContactTypeBadge";
+
+import FollowupBadge from "@/components/contacts/FollowupBadge";
+
+import PriorityBadge from "@/components/contacts/PriorityBadge";
+
+import { formatPhone } from "@/src/utils/formatPhone";
+
+import { formatRelativeDate } from "@/src/utils/formatRelativeDate";
+
+// =========================
+// TYPES
+// =========================
 
 interface ContactsMobileCardProps {
   data: any[];
@@ -14,15 +31,29 @@ interface ContactsMobileCardProps {
   onRowClick: (
     row: any
   ) => void;
+
+  onCreateLead?: (
+    row: any
+  ) => void;
+
+  onCreateInquiry?: (
+    row: any
+  ) => void;
 }
+
+// =========================
+// COMPONENT
+// =========================
 
 export default function ContactsMobileCard({
   data,
   loading,
   onRowClick,
+  onCreateLead,
+  onCreateInquiry,
 }: ContactsMobileCardProps) {
   // =========================
-  // LOADING STATE
+  // LOADING
   // =========================
 
   if (loading) {
@@ -31,10 +62,12 @@ export default function ContactsMobileCard({
         className="
           lg:hidden
 
-          bg-white
           rounded-3xl
+
           border
           border-slate-200
+
+          bg-white
 
           p-10
 
@@ -49,19 +82,19 @@ export default function ContactsMobileCard({
             justify-center
           "
         >
-          {/* LOADER */}
+          {/* SPINNER */}
           <div
             className="
-              w-12
               h-12
+              w-12
+
+              animate-spin
 
               rounded-full
 
               border-4
               border-slate-200
               border-t-yellow-500
-
-              animate-spin
             "
           />
 
@@ -83,7 +116,7 @@ export default function ContactsMobileCard({
   }
 
   // =========================
-  // EMPTY STATE
+  // EMPTY
   // =========================
 
   if (data.length === 0) {
@@ -92,14 +125,14 @@ export default function ContactsMobileCard({
         className="
           lg:hidden
 
-          bg-white
           rounded-3xl
+
           border
           border-slate-200
 
-          p-10
+          bg-white
 
-          text-center
+          p-10
 
           shadow-sm
         "
@@ -110,21 +143,23 @@ export default function ContactsMobileCard({
             flex-col
             items-center
             justify-center
+
+            text-center
           "
         >
           {/* ICON */}
           <div
             className="
-              w-20
+              flex
               h-20
+              w-20
+
+              items-center
+              justify-center
 
               rounded-full
 
               bg-slate-100
-
-              flex
-              items-center
-              justify-center
             "
           >
             <span className="text-3xl">
@@ -154,14 +189,14 @@ export default function ContactsMobileCard({
 
               text-base
 
-              text-slate-500
-
               leading-relaxed
+
+              text-slate-500
             "
           >
-            Tidak ada data contact
-            yang sesuai dengan
-            pencarian atau filter.
+            Tidak ada contact yang
+            sesuai dengan pencarian
+            atau filter.
           </p>
         </div>
       </div>
@@ -169,248 +204,253 @@ export default function ContactsMobileCard({
   }
 
   // =========================
-  // MOBILE CARDS
+  // RENDER
   // =========================
 
   return (
     <div
       className="
-        lg:hidden
-
         space-y-4
+
+        lg:hidden
       "
     >
-      {data.map((item) => (
-        <button
-          key={item.contact_id}
-          onClick={() =>
-            onRowClick(item)
-          }
-          className="
-            w-full
+      {data.map((item) => {
+        // =========================
+        // LAST WA
+        // =========================
 
-            bg-white
+        const lastWA =
+          item.last_whatsapp_opened_at
+            ? formatRelativeDate(
+                item.last_whatsapp_opened_at
+              )
+            : null;
 
-            rounded-3xl
+        return (
+          <div
+            key={
+              item.contact_id
+            }
+            onClick={() =>
+              onRowClick(item)
+            }
+            className="
+              w-full
 
-            border
-            border-slate-200
+              rounded-3xl
 
-            p-5
+              border
+              border-slate-200
 
-            shadow-sm
+              bg-white
 
-            text-left
+              p-5
 
-            transition-all
-            duration-200
+              text-left
 
-            active:scale-[0.99]
+              shadow-sm
 
-            hover:border-yellow-300
-          "
-        >
-          {/* TOP */}
-          <div className="flex items-start justify-between gap-4">
-            {/* LEFT */}
-            <div className="min-w-0 flex-1">
-              {/* NAME */}
-              <h2
+              transition-all
+              duration-200
+
+              active:scale-[0.99]
+            "
+          >
+            {/* HEADER */}
+            <div
+              className="
+                flex
+                items-start
+                justify-between
+
+                gap-4
+              "
+            >
+              {/* LEFT */}
+              <div
                 className="
-                  text-xl
+                  flex
+                  items-start
+                  gap-3
 
-                  font-bold
-
-                  text-slate-900
-
-                  leading-snug
-
-                  break-words
+                  min-w-0
+                  flex-1
                 "
               >
-                {item.name ||
-                  "-"}
-              </h2>
+                {/* AVATAR */}
+                <ContactAvatar
+                  name={item.name}
+                  contactType={
+                    item.contact_type
+                  }
+                  size="md"
+                />
 
-              {/* PHONE */}
+                {/* CONTENT */}
+                <div
+                  className="
+                    min-w-0
+                    flex-1
+                  "
+                >
+                  {/* NAME + TYPE */}
+                  <div
+                    className="
+                      flex
+                      flex-wrap
+                      items-start
+
+                      gap-2
+                    "
+                  >
+                    {/* NAME */}
+                    <h2
+                      className="
+                        text-lg
+
+                        font-bold
+
+                        leading-snug
+
+                        text-slate-900
+
+                        break-words
+                      "
+                    >
+                      {item.name ||
+                        "-"}
+                    </h2>
+
+                    {/* CONTACT TYPE */}
+                    <ContactTypeBadge
+                      type={
+                        item.contact_type
+                      }
+                      size="sm"
+                    />
+                  </div>
+
+                  {/* PHONE */}
+                  <div
+                    className="
+                      mt-2
+
+                      flex
+                      items-center
+                      gap-2
+                    "
+                  >
+                    <Phone
+                      size={14}
+                      className="
+                        shrink-0
+
+                        text-slate-400
+                      "
+                    />
+
+                    <p
+                      className="
+                        text-sm
+
+                        text-slate-500
+                      "
+                    >
+                      {formatPhone(
+                        item.phone
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* STATUS */}
+              {item.status && (
+                <div
+                  className="
+                    shrink-0
+
+                    rounded-full
+
+                    bg-slate-100
+
+                    px-2.5
+                    py-1
+
+                    text-[11px]
+                    font-semibold
+
+                    text-slate-600
+                  "
+                >
+                  {item.status}
+                </div>
+              )}
+            </div>
+
+            {/* BODY */}
+            <div
+              className="
+                mt-4
+
+                space-y-3
+              "
+            >
+              {/* PRIORITY */}
+              <PriorityBadge
+                priority={
+                  item.priority
+                }
+                size="sm"
+              />
+
+              {/* FOLLOWUP */}
+              <FollowupBadge
+                date={
+                  item.next_followup_at
+                }
+                size="sm"
+              />
+
+              {/* LAST WA */}
               <div
                 className="
                   flex
                   items-center
                   gap-2
 
-                  mt-3
+                  text-sm
+
+                  text-slate-500
                 "
               >
-                <Phone
-                  className="
-                    w-4
-                    h-4
-
-                    text-slate-400
-                  "
+                <MessageCircle
+                  size={14}
                 />
 
-                <p
-                  className="
-                    text-base
-
-                    text-slate-500
-                  "
-                >
-                  {item.phone ||
-                    "-"}
-                </p>
+                <span>
+                  {lastWA
+                    ? `Last WA ${lastWA}`
+                    : "No WhatsApp activity"}
+                </span>
               </div>
             </div>
 
-            {/* STATUS */}
-            <div>
-              {item.status}
-            </div>
+            {/* ACTIONS */}
+            <ContactQuickAction
+              contact={item}
+              onCreateLead={
+                onCreateLead
+              }
+              onCreateInquiry={
+                onCreateInquiry
+              }
+              className="mt-5"
+            />
           </div>
-
-          {/* INFO SECTION */}
-          <div
-            className="
-              mt-5
-
-              grid
-              grid-cols-1
-
-              gap-4
-            "
-          >
-            {/* CONTACT TYPE */}
-            <div
-              className="
-                flex
-                items-start
-                gap-3
-              "
-            >
-              {/* ICON */}
-              <div
-                className="
-                  w-10
-                  h-10
-
-                  rounded-2xl
-
-                  bg-yellow-50
-
-                  flex
-                  items-center
-                  justify-center
-
-                  shrink-0
-                "
-              >
-                <UserRound
-                  className="
-                    w-5
-                    h-5
-
-                    text-yellow-600
-                  "
-                />
-              </div>
-
-              {/* CONTENT */}
-              <div>
-                <p
-                  className="
-                    text-sm
-
-                    text-slate-400
-                  "
-                >
-                  Contact Type
-                </p>
-
-                <p
-                  className="
-                    text-base
-
-                    font-semibold
-
-                    text-slate-700
-
-                    mt-1
-                  "
-                >
-                  {item.contact_type ||
-                    "-"}
-                </p>
-              </div>
-            </div>
-
-            {/* FOLLOWUP */}
-            <div
-              className="
-                flex
-                items-start
-                gap-3
-              "
-            >
-              {/* ICON */}
-              <div
-                className="
-                  w-10
-                  h-10
-
-                  rounded-2xl
-
-                  bg-blue-50
-
-                  flex
-                  items-center
-                  justify-center
-
-                  shrink-0
-                "
-              >
-                <CalendarClock
-                  className="
-                    w-5
-                    h-5
-
-                    text-blue-600
-                  "
-                />
-              </div>
-
-              {/* CONTENT */}
-              <div>
-                <p
-                  className="
-                    text-sm
-
-                    text-slate-400
-                  "
-                >
-                  Next Followup
-                </p>
-
-                <p
-                  className="
-                    text-base
-
-                    font-semibold
-
-                    text-slate-700
-
-                    mt-1
-                  "
-                >
-                  {item.next_followup_at ||
-                    "-"}
-                </p>
-              </div>
-            </div>
-          </div>
-        </button>
-      ))}
+        );
+      })}
     </div>
   );
 }

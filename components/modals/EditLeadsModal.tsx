@@ -2,12 +2,26 @@
 
 import {
   useEffect,
+  useMemo,
   useState,
 } from "react";
 
+import {
+  Building2,
+  ChevronDown,
+  ChevronUp,
+  FileText,
+  Loader2,
+  Save,
+  UserRound,
+  X,
+} from "lucide-react";
+
 import { supabase } from "@/lib/supabase";
 
-type EditLeadModalProps = {
+import ContactSearchInput from "@/components/leads/ContactSearchInput";
+
+type EditLeadsModalProps = {
   open: boolean;
 
   data?: any;
@@ -15,14 +29,15 @@ type EditLeadModalProps = {
   onClose: () => void;
 
   onSuccess: () => void;
+
 };
 
-export default function EditLeadModal({
+export default function EditLeadsModal({
   open,
   data,
   onClose,
   onSuccess,
-}: EditLeadModalProps) {
+}: EditLeadsModalProps) {
 
   // =========================
   // STATES
@@ -49,6 +64,11 @@ export default function EditLeadModal({
   ] = useState<any[]>([]);
 
   const [
+    marketTypes,
+    setMarketTypes,
+  ] = useState<any[]>([]);
+
+  const [
     loading,
     setLoading,
   ] = useState(false);
@@ -59,15 +79,31 @@ export default function EditLeadModal({
   ] = useState(false);
 
   // =========================
+  // MOBILE ACCORDION
+  // =========================
+
+  const [
+    openSections,
+    setOpenSections,
+  ] = useState({
+
+    client: true,
+
+    requirement: true,
+
+    additional: false,
+  });
+
+  // =========================
   // FORM
   // =========================
 
   const [
     formData,
     setFormData,
-  ] = useState<any>({
+  ] = useState({
 
-    contact_id: "",
+    contact_id: null as number | null,
 
     requirements: "",
 
@@ -83,7 +119,7 @@ export default function EditLeadModal({
 
     property_type_id: "",
 
-    market_type: "Sale",
+    market_type_id: "",
 
     timeline: "",
 
@@ -94,16 +130,10 @@ export default function EditLeadModal({
     land_size_min: "",
 
     building_size_min: "",
-
-    last_contact: "",
-
-    next_followup: "",
-
-    lost_reason: "",
   });
 
   // =========================
-  // FETCH DROPDOWNS
+  // FETCH
   // =========================
 
   async function fetchDropdowns() {
@@ -121,6 +151,8 @@ export default function EditLeadModal({
         sourcesRes,
 
         propertyTypesRes,
+
+        marketTypesRes,
 
       ] = await Promise.all([
 
@@ -192,6 +224,24 @@ export default function EditLeadModal({
               ascending: true,
             }
           ),
+
+        supabase
+
+          .from(
+            "market_types"
+          )
+
+          .select(`
+            market_type_id,
+            market_type_name
+          `)
+
+          .order(
+            "market_type_name",
+            {
+              ascending: true,
+            }
+          ),
       ]);
 
       setContacts(
@@ -210,6 +260,10 @@ export default function EditLeadModal({
         propertyTypesRes.data || []
       );
 
+      setMarketTypes(
+        marketTypesRes.data || []
+      );
+
     } catch (error) {
 
       console.log(error);
@@ -226,31 +280,19 @@ export default function EditLeadModal({
 
   useEffect(() => {
 
-    if (!open) return;
+    if (!open || !data)
+      return;
 
     fetchDropdowns();
-
-  }, [open]);
-
-  // =========================
-  // AUTO FILL
-  // =========================
-
-  useEffect(() => {
-
-    if (!data) return;
 
     setFormData({
 
       contact_id:
-        data.contact_id
-          ? String(
-              data.contact_id
-            )
-          : "",
+              data.contact_id || null,
 
       requirements:
-        data.requirements || "",
+        data.requirements ||
+        "",
 
       lead_status_id:
         data.lead_status_id
@@ -260,10 +302,18 @@ export default function EditLeadModal({
           : "",
 
       budget_min:
-        data.budget_min || "",
+        data.budget_min
+          ? String(
+              data.budget_min
+            )
+          : "",
 
       budget_max:
-        data.budget_max || "",
+        data.budget_max
+          ? String(
+              data.budget_max
+            )
+          : "",
 
       source_id:
         data.source_id
@@ -273,7 +323,8 @@ export default function EditLeadModal({
           : "",
 
       priority:
-        data.priority || "WARM",
+        data.priority ||
+        "WARM",
 
       property_type_id:
         data.property_type_id
@@ -282,58 +333,72 @@ export default function EditLeadModal({
             )
           : "",
 
-      market_type:
-        data.market_type || "Sale",
+      market_type_id:
+        data.market_type_id
+          ? String(
+              data.market_type_id
+            )
+          : "",
 
       timeline:
-        data.timeline || "",
+        data.timeline ||
+        "",
 
       district:
-        data.district || "",
+        data.district ||
+        "",
 
       city:
-        data.city || "",
+        data.city ||
+        "",
 
       land_size_min:
-        data.land_size_min || "",
+        data.land_size_min
+          ? String(
+              data.land_size_min
+            )
+          : "",
 
       building_size_min:
-        data.building_size_min || "",
-
-      last_contact:
-        data.last_contact
-          ? new Date(
-              data.last_contact
+        data.building_size_min
+          ? String(
+              data.building_size_min
             )
-              .toISOString()
-              .slice(0, 16)
           : "",
-
-      next_followup:
-        data.next_followup
-          ? new Date(
-              data.next_followup
-            )
-              .toISOString()
-              .slice(0, 16)
-          : "",
-
-      lost_reason:
-        data.lost_reason || "",
     });
 
-  }, [data]);
+  }, [
+    open,
+  ]);
 
   // =========================
-  // HANDLE CHANGE
+  // CONTACT
+  // =========================
+
+  const selectedContactData =
+    useMemo(() => {
+
+      return contacts.find(
+        (item) =>
+          String(
+            item.contact_id
+          ) ===
+          String(
+            formData.contact_id
+          )
+      );
+
+    }, [
+      contacts,
+      formData.contact_id,
+    ]);
+
+  // =========================
+  // CHANGE
   // =========================
 
   function handleChange(
-    e: React.ChangeEvent<
-      HTMLInputElement |
-      HTMLTextAreaElement |
-      HTMLSelectElement
-    >
+    e: any
   ) {
 
     setFormData({
@@ -346,17 +411,59 @@ export default function EditLeadModal({
   }
 
   // =========================
-  // SAVE
+  // UPDATE
   // =========================
 
-  async function handleSave() {
+  async function handleSubmit() {
 
     try {
 
-      if (!data?.leads_id) {
+      if (
+        !formData.contact_id
+      ) {
 
         alert(
-          "Lead ID not found"
+          "Contact is required"
+        );
+
+        return;
+      }
+
+      if (
+        !formData.property_type_id
+      ) {
+
+        alert(
+          "Property type is required"
+        );
+
+        return;
+      }
+
+      if (
+        !formData.market_type_id
+      ) {
+
+        alert(
+          "Market type is required"
+        );
+
+        return;
+      }
+
+      if (
+        formData.budget_min &&
+        formData.budget_max &&
+        Number(
+          formData.budget_max
+        ) <
+          Number(
+            formData.budget_min
+          )
+      ) {
+
+        alert(
+          "Budget max cannot be smaller than budget min"
         );
 
         return;
@@ -367,11 +474,9 @@ export default function EditLeadModal({
       const payload = {
 
         contact_id:
-          formData.contact_id
-            ? Number(
-                formData.contact_id
-              )
-            : null,
+          Number(
+            formData.contact_id
+          ),
 
         requirements:
           formData.requirements ||
@@ -406,8 +511,7 @@ export default function EditLeadModal({
             : null,
 
         priority:
-          formData.priority ||
-          null,
+          formData.priority,
 
         property_type_id:
           formData.property_type_id
@@ -416,9 +520,12 @@ export default function EditLeadModal({
               )
             : null,
 
-        market_type:
-          formData.market_type ||
-          null,
+        market_type_id:
+          formData.market_type_id
+            ? Number(
+                formData.market_type_id
+              )
+            : null,
 
         timeline:
           formData.timeline ||
@@ -448,192 +555,31 @@ export default function EditLeadModal({
               )
             : null,
 
-        last_contact:
-          formData.last_contact ||
-          null,
-
-        next_followup:
-          formData.next_followup ||
-          null,
-
-        lost_reason:
-          formData.lost_reason ||
-          null,
-
         updated_at:
           new Date(),
       };
 
-      const {
-        error,
-      } = await supabase
+      const { error } =
+        await supabase
 
-        .from("leads")
+          .from("leads")
 
-        .update(payload)
+          .update(payload)
 
-        .eq(
-          "leads_id",
-          data.leads_id
-        );
+          .eq(
+            "leads_id",
+            data.leads_id
+          );
 
       if (error) {
 
         console.log(error);
 
         alert(
-          "Failed update lead"
+          error.message
         );
 
         return;
-      }
-
-      // =========================
-      // DELETE OLD MATCHES
-      // =========================
-
-      await supabase
-
-        .from(
-          "property_matches"
-        )
-
-        .delete()
-
-        .eq(
-          "match_id",
-          data.leads_id
-        );
-
-      // =========================
-      // AUTO REMATCH
-      // =========================
-
-      if (
-        formData.property_type_id
-      ) {
-
-        let propertyQuery =
-          supabase
-
-            .from("properties")
-
-            .select(`
-              property_id,
-              price,
-              district,
-              city,
-              property_type_id
-            `);
-
-        // PROPERTY TYPE
-
-        propertyQuery =
-          propertyQuery.eq(
-            "property_type_id",
-            Number(
-              formData.property_type_id
-            )
-          );
-
-        // MIN BUDGET
-
-        if (
-          formData.budget_min
-        ) {
-
-          propertyQuery =
-            propertyQuery.gte(
-              "price",
-              Number(
-                formData.budget_min
-              )
-            );
-        }
-
-        // MAX BUDGET
-
-        if (
-          formData.budget_max
-        ) {
-
-          propertyQuery =
-            propertyQuery.lte(
-              "price",
-              Number(
-                formData.budget_max
-              )
-            );
-        }
-
-        // DISTRICT
-
-        if (
-          formData.district
-        ) {
-
-          propertyQuery =
-            propertyQuery.ilike(
-              "district",
-              `%${formData.district}%`
-            );
-        }
-
-        // CITY
-
-        if (
-          formData.city
-        ) {
-
-          propertyQuery =
-            propertyQuery.ilike(
-              "city",
-              `%${formData.city}%`
-            );
-        }
-
-        const {
-          data: matchedProperties,
-        } = await propertyQuery.limit(
-          20
-        );
-
-        // INSERT MATCHES
-
-        if (
-          matchedProperties &&
-          matchedProperties.length > 0
-        ) {
-
-          const matches =
-            matchedProperties.map(
-              (property) => ({
-
-                match_id:
-                  data.leads_id,
-
-                property_id:
-                  property.property_id,
-
-                matching_score:
-                  80,
-
-                matching_status:
-                  "MATCHED",
-
-                notes:
-                  "Auto regenerated after lead update",
-              })
-            );
-
-          await supabase
-
-            .from(
-              "property_matches"
-            )
-
-            .insert(matches);
-        }
       }
 
       alert(
@@ -648,19 +594,14 @@ export default function EditLeadModal({
 
       console.log(error);
 
+      alert(
+        "Something went wrong"
+      );
+
     } finally {
 
       setSaving(false);
     }
-  }
-
-  // =========================
-  // CLOSE
-  // =========================
-
-  function handleClose() {
-
-    onClose();
   }
 
   // =========================
@@ -676,409 +617,496 @@ export default function EditLeadModal({
         fixed
         inset-0
         z-50
+
         bg-black/50
-        flex
-        items-center
-        justify-center
-        p-4
+        backdrop-blur-sm
       "
     >
 
       <div
         className="
-          bg-white
-          rounded-3xl
-          w-full
-          max-w-5xl
-          max-h-[90vh]
-          overflow-y-auto
-          shadow-2xl
+          flex
+          min-h-screen
+
+          items-end
+          justify-center
+
+          md:items-center
+          md:p-6
         "
       >
 
-        {/* HEADER */}
-
         <div
           className="
-            border-b
-            p-6
             flex
-            items-center
-            justify-between
+            h-[100dvh]
+            w-full
+            flex-col
+
+            overflow-hidden
+
+            bg-white
+
+            md:h-auto
+            md:max-h-[90vh]
+            md:max-w-4xl
+
+            md:rounded-[28px]
           "
         >
 
-          <h2
+          {/* HEADER */}
+
+          <div
             className="
-              text-2xl
-              font-bold
+              flex
+              items-center
+              justify-between
+
+              border-b
+
+              px-4
+              py-4
+
+              md:px-6
             "
           >
-            Edit Lead
-          </h2>
-
-          <button
-            onClick={handleClose}
-            className="
-              text-gray-500
-              hover:text-black
-            "
-          >
-            ✕
-          </button>
-
-        </div>
-
-        {/* BODY */}
-
-        <div className="p-6 space-y-8">
-
-          {loading ? (
 
             <div
               className="
-                py-10
-                text-center
-                text-gray-500
+                flex
+                items-center
+                gap-3
               "
             >
-              Loading...
+
+              <div
+                className="
+                  flex
+                  h-10
+                  w-10
+
+                  items-center
+                  justify-center
+
+                  rounded-2xl
+
+                  bg-violet-100
+                "
+              >
+                <UserRound
+                  size={20}
+                  className="
+                    text-violet-600
+                  "
+                />
+              </div>
+
+              <div>
+
+                <h2
+                  className="
+                    text-xl
+                    font-bold
+
+                    text-slate-900
+                  "
+                >
+                  Edit Lead
+                </h2>
+
+                <p
+                  className="
+                    text-sm
+                    text-slate-500
+                  "
+                >
+                  Update lead information
+                </p>
+
+              </div>
+
             </div>
 
-          ) : (
+            <button
+              onClick={onClose}
+              className="
+                rounded-xl
 
-            <>
+                p-2
 
-              {/* CLIENT */}
+                text-slate-400
 
-              <Section title="Client Information">
+                hover:bg-slate-100
+              "
+            >
+              <X size={22} />
+            </button>
 
-                <div
+          </div>
+
+          {/* BODY */}
+
+          <div
+            className="
+              flex-1
+
+              space-y-4
+
+              overflow-y-auto
+
+              p-4
+
+              md:p-6
+            "
+          >
+
+            {loading ? (
+
+              <div
+                className="
+                  flex
+                  h-40
+
+                  items-center
+                  justify-center
+                "
+              >
+
+                <Loader2
                   className="
-                    grid
-                    grid-cols-1
-                    md:grid-cols-2
-                    gap-4
+                    animate-spin
+                    text-violet-600
                   "
+                />
+
+              </div>
+
+            ) : (
+
+              <>
+
+                {/* CLIENT */}
+
+                <SectionCard
+                  mobileOpen={
+                    openSections.client
+                  }
+                  onToggle={() =>
+                    setOpenSections({
+                      ...openSections,
+                      client:
+                        !openSections.client,
+                    })
+                  }
+                  icon={
+                    <UserRound
+                      size={18}
+                    />
+                  }
+                  title="Client Information"
                 >
 
-                  <SelectField
-                    label="Contact"
-                    name="contact_id"
-                    value={
-                      formData.contact_id
-                    }
-                    onChange={
-                      handleChange
-                    }
-                    options={contacts.map(
-                      (item) => ({
-                        value:
-                          item.contact_id,
-                        label:
-                          `${item.name} - ${item.phone}`,
-                      })
-                    )}
-                  />
+                  <div
+                    className="
+                      grid
+                      grid-cols-1
+                      gap-3
 
-                  <SelectField
-                    label="Lead Status"
-                    name="lead_status_id"
-                    value={
-                      formData.lead_status_id
-                    }
-                    onChange={
-                      handleChange
-                    }
-                    options={leadStatuses.map(
-                      (item) => ({
-                        value:
-                          item.lead_status_id,
-                        label:
-                          item.lead_status_name,
-                      })
-                    )}
-                  />
+                      md:grid-cols-2
+                    "
+                  >
 
-                </div>
+                    <div
+                      className="
+                        md:col-span-2
+                      "
+                    >
 
-              </Section>
+                      <ContactSearchInput
+                        value={
+                          formData.contact_id
+                        }
+                        onSelect={(
+                          contact
+                        ) => {
 
-              {/* REQUIREMENT */}
+                          setFormData({
 
-              <Section title="Property Requirement">
+                            ...formData,
 
-                <div
-                  className="
-                    grid
-                    grid-cols-1
-                    md:grid-cols-2
-                    gap-4
-                  "
-                >
+                            contact_id:
+                                contact?.contact_id || null,
+                          });
+                        }}
+                      />
 
-                  <SelectField
-                    label="Property Type"
-                    name="property_type_id"
-                    value={
-                      formData.property_type_id
-                    }
-                    onChange={
-                      handleChange
-                    }
-                    options={propertyTypes.map(
-                      (item) => ({
-                        value:
-                          item.property_type_id,
-                        label:
-                          item.property_type_name,
-                      })
-                    )}
-                  />
+                    </div>
 
-                  <SelectField
-                    label="Market Type"
-                    name="market_type"
-                    value={
-                      formData.market_type
-                    }
-                    onChange={
-                      handleChange
-                    }
-                    options={[
-                      {
-                        value:
-                          "Sale",
-                        label:
-                          "Sale",
-                      },
-
-                      {
-                        value:
-                          "Rent",
-                        label:
-                          "Rent",
-                      },
-
-                      {
-                        value:
-                          "Sale & Rent",
-                        label:
-                          "Sale & Rent",
-                      },
-                    ]}
-                  />
-
-                  <InputField
-                    label="District"
-                    name="district"
-                    value={
-                      formData.district
-                    }
-                    onChange={
-                      handleChange
-                    }
-                  />
-
-                  <InputField
-                    label="City"
-                    name="city"
-                    value={
-                      formData.city
-                    }
-                    onChange={
-                      handleChange
-                    }
-                  />
-
-                </div>
-
-              </Section>
-
-              {/* FINANCIAL */}
-
-              <Section title="Financial Information">
-
-                <div
-                  className="
-                    grid
-                    grid-cols-1
-                    md:grid-cols-2
-                    gap-4
-                  "
-                >
-
-                  <InputField
-                    type="number"
-                    label="Budget Min"
-                    name="budget_min"
-                    value={
-                      formData.budget_min
-                    }
-                    onChange={
-                      handleChange
-                    }
-                  />
-
-                  <InputField
-                    type="number"
-                    label="Budget Max"
-                    name="budget_max"
-                    value={
-                      formData.budget_max
-                    }
-                    onChange={
-                      handleChange
-                    }
-                  />
-
-                  <InputField
-                    type="number"
-                    label="Land Size Min"
-                    name="land_size_min"
-                    value={
-                      formData.land_size_min
-                    }
-                    onChange={
-                      handleChange
-                    }
-                  />
-
-                  <InputField
-                    type="number"
-                    label="Building Size Min"
-                    name="building_size_min"
-                    value={
-                      formData
-                        .building_size_min
-                    }
-                    onChange={
-                      handleChange
-                    }
-                  />
-
-                </div>
-
-              </Section>
-
-              {/* EXTRA */}
-
-              <Section title="Additional Information">
-
-                <div
-                  className="
-                    grid
-                    grid-cols-1
-                    md:grid-cols-2
-                    gap-4
-                  "
-                >
-
-                  <SelectField
-                    label="Priority"
-                    name="priority"
-                    value={
-                      formData.priority
-                    }
-                    onChange={
-                      handleChange
-                    }
-                    options={[
-                      {
-                        value:
-                          "HOT",
-                        label:
-                          "HOT",
-                      },
-
-                      {
-                        value:
-                          "WARM",
-                        label:
-                          "WARM",
-                      },
-
-                      {
-                        value:
-                          "COLD",
-                        label:
-                          "COLD",
-                      },
-                    ]}
-                  />
-
-                  <SelectField
-                    label="Source"
-                    name="source_id"
-                    value={
-                      formData.source_id
-                    }
-                    onChange={
-                      handleChange
-                    }
-                    options={sources.map(
-                      (item) => ({
-                        value:
-                          item.source_id,
-                        label:
-                          item.source_name,
-                      })
-                    )}
-                  />
-
-                  <InputField
-                    label="Timeline"
-                    name="timeline"
-                    value={
-                      formData.timeline
-                    }
-                    onChange={
-                      handleChange
-                    }
-                  />
-
-                  <InputField
-                    label="Lost Reason"
-                    name="lost_reason"
-                    value={
-                      formData.lost_reason
-                    }
-                    onChange={
-                      handleChange
-                    }
-                  />
-
-                  <InputField
-                    type="datetime-local"
-                    label="Last Contact"
-                    name="last_contact"
-                    value={
-                      formData.last_contact
-                    }
-                    onChange={
-                      handleChange
-                    }
-                  />
-
-                  <InputField
-                    type="datetime-local"
-                    label="Next Followup"
-                    name="next_followup"
-                    value={
-                      formData.next_followup
-                    }
-                    onChange={
-                      handleChange
-                    }
-                  />
-
-                  <div className="md:col-span-2">
-
-                    <TextareaField
-                      label="Requirements"
-                      name="requirements"
+                    <FormSelect
+                      label="Lead Status"
+                      name="lead_status_id"
                       value={
-                        formData.requirements
+                        formData.lead_status_id
+                      }
+                      onChange={
+                        handleChange
+                      }
+                      options={leadStatuses.map(
+                        (item) => ({
+                          value:
+                            item.lead_status_id,
+
+                          label:
+                            item.lead_status_name,
+                        })
+                      )}
+                    />
+
+                    <FormSelect
+                      label="Source"
+                      name="source_id"
+                      value={
+                        formData.source_id
+                      }
+                      onChange={
+                        handleChange
+                      }
+                      options={sources.map(
+                        (item) => ({
+                          value:
+                            item.source_id,
+
+                          label:
+                            item.source_name,
+                        })
+                      )}
+                    />
+
+                  </div>
+
+                  {selectedContactData && (
+
+                    <div
+                      className="
+                        mt-4
+
+                        flex
+                        items-center
+                        gap-3
+
+                        rounded-2xl
+
+                        border
+
+                        bg-slate-50
+
+                        p-3
+                      "
+                    >
+
+                      <div
+                        className="
+                          flex
+                          h-10
+                          w-10
+
+                          items-center
+                          justify-center
+
+                          rounded-full
+
+                          bg-violet-100
+
+                          font-semibold
+
+                          text-violet-700
+                        "
+                      >
+                        {selectedContactData.name?.charAt(
+                          0
+                        )}
+                      </div>
+
+                      <div>
+
+                        <p
+                          className="
+                            font-medium
+                            text-slate-900
+                          "
+                        >
+                          {
+                            selectedContactData.name
+                          }
+                        </p>
+
+                        <p
+                          className="
+                            text-sm
+                            text-slate-500
+                          "
+                        >
+                          {
+                            selectedContactData.phone
+                          }
+                        </p>
+
+                      </div>
+
+                    </div>
+
+                  )}
+
+                </SectionCard>
+
+                {/* REQUIREMENT */}
+
+                <SectionCard
+                  mobileOpen={
+                    openSections.requirement
+                  }
+                  onToggle={() =>
+                    setOpenSections({
+                      ...openSections,
+                      requirement:
+                        !openSections.requirement,
+                    })
+                  }
+                  icon={
+                    <Building2
+                      size={18}
+                    />
+                  }
+                  title="Requirement"
+                >
+
+                  <div
+                    className="
+                      grid
+                      grid-cols-1
+                      gap-3
+
+                      md:grid-cols-2
+                    "
+                  >
+
+                    <FormSelect
+                      label="Property Type"
+                      name="property_type_id"
+                      value={
+                        formData.property_type_id
+                      }
+                      onChange={
+                        handleChange
+                      }
+                      options={propertyTypes.map(
+                        (item) => ({
+                          value:
+                            item.property_type_id,
+
+                          label:
+                            item.property_type_name,
+                        })
+                      )}
+                    />
+
+                    <FormSelect
+                      label="Market Type"
+                      name="market_type_id"
+                      value={
+                        formData.market_type_id
+                      }
+                      onChange={
+                        handleChange
+                      }
+                      options={marketTypes.map(
+                        (item) => ({
+                          value:
+                            item.market_type_id,
+
+                          label:
+                            item.market_type_name,
+                        })
+                      )}
+                    />
+
+                    <FormInput
+                      label="District"
+                      name="district"
+                      value={
+                        formData.district
+                      }
+                      onChange={
+                        handleChange
+                      }
+                    />
+
+                    <FormInput
+                      label="City"
+                      name="city"
+                      value={
+                        formData.city
+                      }
+                      onChange={
+                        handleChange
+                      }
+                    />
+
+                    <FormInput
+                      type="number"
+                      label="Budget Min"
+                      name="budget_min"
+                      value={
+                        formData.budget_min
+                      }
+                      onChange={
+                        handleChange
+                      }
+                    />
+
+                    <FormInput
+                      type="number"
+                      label="Budget Max"
+                      name="budget_max"
+                      value={
+                        formData.budget_max
+                      }
+                      onChange={
+                        handleChange
+                      }
+                    />
+
+                    <FormInput
+                      type="number"
+                      label="Land Size Min"
+                      name="land_size_min"
+                      value={
+                        formData.land_size_min
+                      }
+                      onChange={
+                        handleChange
+                      }
+                    />
+
+                    <FormInput
+                      type="number"
+                      label="Building Size Min"
+                      name="building_size_min"
+                      value={
+                        formData
+                          .building_size_min
+                      }
+                      onChange={
+                        handleChange
+                      }
+                    />
+
+                    <FormInput
+                      label="Timeline"
+                      name="timeline"
+                      value={
+                        formData.timeline
                       }
                       onChange={
                         handleChange
@@ -1087,58 +1115,152 @@ export default function EditLeadModal({
 
                   </div>
 
-                </div>
+                </SectionCard>
 
-              </Section>
+                {/* ADDITIONAL */}
 
-            </>
+                <SectionCard
+                  mobileOpen={
+                    openSections.additional
+                  }
+                  onToggle={() =>
+                    setOpenSections({
+                      ...openSections,
+                      additional:
+                        !openSections.additional,
+                    })
+                  }
+                  icon={
+                    <FileText
+                      size={18}
+                    />
+                  }
+                  title="Additional Notes"
+                >
 
-          )}
+                  <div
+                    className="
+                      mb-3
+                    "
+                  >
 
-        </div>
+                    <FormSelect
+                      label="Priority"
+                      name="priority"
+                      value={
+                        formData.priority
+                      }
+                      onChange={
+                        handleChange
+                      }
+                      options={[
+                        {
+                          value:
+                            "HOT",
+                          label:
+                            "🔥 HOT",
+                        },
 
-        {/* FOOTER */}
+                        {
+                          value:
+                            "WARM",
+                          label:
+                            "🌤️ WARM",
+                        },
 
-        <div
-          className="
-            border-t
-            p-6
-            flex
-            justify-end
-            gap-3
-          "
-        >
+                        {
+                          value:
+                            "COLD",
+                          label:
+                            "❄️ COLD",
+                        },
+                      ]}
+                    />
 
-          <button
-            onClick={handleClose}
+                  </div>
+
+                  <FormTextarea
+                    label="Requirements / Notes"
+                    name="requirements"
+                    value={
+                      formData.requirements
+                    }
+                    onChange={
+                      handleChange
+                    }
+                  />
+
+                </SectionCard>
+
+              </>
+
+            )}
+
+          </div>
+
+          {/* FOOTER */}
+
+          <div
             className="
-              border
-              rounded-xl
-              px-5
-              py-3
-              hover:bg-gray-100
+              border-t
+
+              bg-white
+
+              p-4
             "
           >
-            Cancel
-          </button>
 
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="
-              bg-black
-              text-white
-              rounded-xl
-              px-5
-              py-3
-              hover:opacity-90
-              disabled:opacity-50
-            "
-          >
-            {saving
-              ? "Saving..."
-              : "Update Lead"}
-          </button>
+            <button
+              onClick={handleSubmit}
+              disabled={saving}
+              className="
+                flex
+                h-12
+                w-full
+
+                items-center
+                justify-center
+                gap-2
+
+                rounded-2xl
+
+                bg-violet-600
+
+                px-5
+
+                font-semibold
+                text-white
+
+                transition-all
+
+                hover:bg-violet-700
+
+                disabled:opacity-50
+              "
+            >
+
+              {saving ? (
+
+                <Loader2
+                  size={18}
+                  className="
+                    animate-spin
+                  "
+                />
+
+              ) : (
+
+                <Save size={18} />
+
+              )}
+
+              {saving
+                ? "Updating..."
+                : "Update Lead"}
+
+            </button>
+
+          </div>
 
         </div>
 
@@ -1152,25 +1274,102 @@ export default function EditLeadModal({
 // SECTION
 // =========================
 
-function Section({
+function SectionCard({
+  icon,
   title,
   children,
+  mobileOpen,
+  onToggle,
 }: any) {
 
   return (
 
-    <div className="space-y-4">
+    <div
+      className="
+        overflow-hidden
 
-      <h3
+        rounded-3xl
+
+        border
+        border-slate-200
+
+        bg-white
+      "
+    >
+
+      <button
+        onClick={onToggle}
         className="
-          text-lg
-          font-semibold
+          flex
+          w-full
+          items-center
+          justify-between
+
+          p-4
         "
       >
-        {title}
-      </h3>
 
-      {children}
+        <div
+          className="
+            flex
+            items-center
+            gap-3
+          "
+        >
+
+          <div
+            className="
+              flex
+              h-10
+              w-10
+
+              items-center
+              justify-center
+
+              rounded-2xl
+
+              bg-violet-100
+
+              text-violet-700
+            "
+          >
+            {icon}
+          </div>
+
+          <h3
+            className="
+              text-base
+              font-semibold
+
+              text-slate-900
+            "
+          >
+            {title}
+          </h3>
+
+        </div>
+
+        {mobileOpen ? (
+          <ChevronUp size={20} />
+        ) : (
+          <ChevronDown size={20} />
+        )}
+
+      </button>
+
+      {mobileOpen && (
+
+        <div
+          className="
+            border-t
+
+            p-4
+          "
+        >
+          {children}
+        </div>
+
+      )}
 
     </div>
   );
@@ -1180,19 +1379,25 @@ function Section({
 // INPUT
 // =========================
 
-function InputField({
+function FormInput({
   label,
   ...props
 }: any) {
 
   return (
 
-    <div className="space-y-2">
+    <div
+      className="
+        space-y-1.5
+      "
+    >
 
       <label
         className="
-          text-sm
+          text-xs
           font-medium
+
+          text-slate-500
         "
       >
         {label}
@@ -1201,11 +1406,27 @@ function InputField({
       <input
         {...props}
         className="
+          h-12
           w-full
+
+          rounded-2xl
+
           border
-          rounded-xl
+          border-slate-200
+
+          bg-white
+
           px-4
-          py-3
+
+          text-[15px]
+
+          outline-none
+
+          transition-all
+
+          focus:border-violet-400
+          focus:ring-4
+          focus:ring-violet-100
         "
       />
 
@@ -1217,7 +1438,7 @@ function InputField({
 // SELECT
 // =========================
 
-function SelectField({
+function FormSelect({
   label,
   options,
   ...props
@@ -1225,12 +1446,18 @@ function SelectField({
 
   return (
 
-    <div className="space-y-2">
+    <div
+      className="
+        space-y-1.5
+      "
+    >
 
       <label
         className="
-          text-sm
+          text-xs
           font-medium
+
+          text-slate-500
         "
       >
         {label}
@@ -1239,11 +1466,27 @@ function SelectField({
       <select
         {...props}
         className="
+          h-12
           w-full
+
+          rounded-2xl
+
           border
-          rounded-xl
+          border-slate-200
+
+          bg-white
+
           px-4
-          py-3
+
+          text-[15px]
+
+          outline-none
+
+          transition-all
+
+          focus:border-violet-400
+          focus:ring-4
+          focus:ring-violet-100
         "
       >
 
@@ -1263,6 +1506,7 @@ function SelectField({
             >
               {option.label}
             </option>
+
           )
         )}
 
@@ -1276,33 +1520,55 @@ function SelectField({
 // TEXTAREA
 // =========================
 
-function TextareaField({
+function FormTextarea({
   label,
   ...props
 }: any) {
 
   return (
 
-    <div className="space-y-2">
+    <div
+      className="
+        space-y-1.5
+      "
+    >
 
       <label
         className="
-          text-sm
+          text-xs
           font-medium
+
+          text-slate-500
         "
       >
         {label}
       </label>
 
       <textarea
-        rows={5}
+        rows={4}
         {...props}
         className="
           w-full
+
+          rounded-2xl
+
           border
-          rounded-xl
+          border-slate-200
+
+          bg-white
+
           px-4
           py-3
+
+          text-[15px]
+
+          outline-none
+
+          transition-all
+
+          focus:border-violet-400
+          focus:ring-4
+          focus:ring-violet-100
         "
       />
 

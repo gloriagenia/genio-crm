@@ -15,8 +15,6 @@ import EditContactModal from "@/components/modals/EditContactModal";
 
 import AddLeadsModal from "@/components/modals/AddLeadsModal";
 
-import AddInquiryModal from "@/components/modals/AddInquiryModal";
-
 import ContactDetailPopUp from "@/components/contacts/ContactDetailPopUp";
 
 import ContactsHeader from "@/components/contacts/ContactsHeader";
@@ -29,7 +27,21 @@ import ContactsMobileCard from "@/components/contacts/ContactsMobileCard";
 
 import ViewActions from "@/components/actions/ViewActions";
 
+import PriorityBadge from "@/components/contacts/PriorityBadge";
+
+import FollowupBadge from "@/components/contacts/FollowupBadge";
+
+import ContactTypeBadge from "@/components/contacts/ContactTypeBadge";
+
 import { supabase } from "@/lib/supabase";
+
+import {
+  getFollowupStatus,
+} from "@/src/utils/getFollowupStatus";
+
+import {
+  openWhatsApp,
+} from "@/src/utils/openWhatsApp";
 
 // =========================
 // COLUMNS
@@ -57,13 +69,18 @@ const columns = [
   },
 
   {
+    key: "priority",
+    label: "Priority",
+  },
+
+  {
     key: "status",
     label: "Status",
   },
 
   {
     key: "next_followup_at",
-    label: "Next Followup",
+    label: "Follow Up",
   },
 
   {
@@ -73,48 +90,11 @@ const columns = [
 ];
 
 // =========================
-// WHATSAPP
+// COMPONENT
 // =========================
 
-function openWhatsApp(
-  phone?: string
-) {
-  if (!phone) return;
-
-  let cleanPhone = phone.replace(
-    /\D/g,
-    ""
-  );
-
-  if (
-    cleanPhone.startsWith("0")
-  ) {
-    cleanPhone =
-      "62" +
-      cleanPhone.slice(1);
-  }
-
-  if (
-    cleanPhone.startsWith("8")
-  ) {
-    cleanPhone =
-      "62" + cleanPhone;
-  }
-
-  if (
-    !cleanPhone.startsWith("62")
-  ) {
-    cleanPhone =
-      "62" + cleanPhone;
-  }
-
-  window.open(
-    `https://wa.me/${cleanPhone}`,
-    "_blank"
-  );
-}
-
 export default function ContactsPage() {
+
   // =========================
   // STATES
   // =========================
@@ -164,11 +144,6 @@ export default function ContactsPage() {
     setOpenAddLeadModal,
   ] = useState(false);
 
-  const [
-    openAddInquiryModal,
-    setOpenAddInquiryModal,
-  ] = useState(false);
-
   const [editData, setEditData] =
     useState<any>(null);
 
@@ -176,19 +151,22 @@ export default function ContactsPage() {
   // FILTERS
   // =========================
 
-  const [
-    searchName,
-    setSearchName,
-  ] = useState("");
-
-  const [
-    searchPhone,
-    setSearchPhone,
-  ] = useState("");
+  const [search, setSearch] =
+    useState("");
 
   const [
     filterStatus,
     setFilterStatus,
+  ] = useState("");
+
+  const [
+    filterPriority,
+    setFilterPriority,
+  ] = useState("");
+
+  const [
+    filterFollowup,
+    setFilterFollowup,
   ] = useState("");
 
   const [
@@ -216,37 +194,53 @@ export default function ContactsPage() {
   // =========================
 
   async function fetchContacts() {
+
     try {
+
       setLoading(true);
 
       let query = supabase
+
         .from("contacts")
+
         .select("*", {
           count: "exact",
         });
 
       // =========================
-      // FILTERS
+      // SEARCH
       // =========================
 
-      if (searchName) {
-        query = query.ilike(
-          "name",
-          `%${searchName}%`
-        );
+      if (search) {
+
+        query = query.or(`
+          name.ilike.%${search}%,
+          phone.ilike.%${search}%,
+          company.ilike.%${search}%
+        `);
       }
 
-      if (searchPhone) {
-        query = query.ilike(
-          "phone",
-          `%${searchPhone}%`
-        );
-      }
+      // =========================
+      // STATUS
+      // =========================
 
       if (filterStatus) {
+
         query = query.eq(
           "status",
           filterStatus
+        );
+      }
+
+      // =========================
+      // PRIORITY
+      // =========================
+
+      if (filterPriority) {
+
+        query = query.eq(
+          "priority",
+          filterPriority
         );
       }
 
@@ -259,6 +253,7 @@ export default function ContactsPage() {
         error,
         count,
       } = await query
+
         .order(
           "created_at",
           {
@@ -267,16 +262,48 @@ export default function ContactsPage() {
               "asc",
           }
         )
+
         .range(
           startIndex,
           endIndex
         );
 
       if (error) {
+
         console.log(error);
 
         return;
       }
+
+      // =========================
+      // FOLLOWUP FILTER
+      // =========================
+
+      let filteredData =
+        data || [];
+
+      if (filterFollowup) {
+
+        filteredData =
+          filteredData.filter(
+            (item) => {
+
+              const followup =
+                getFollowupStatus(
+                  item.next_followup_at
+                );
+
+              return (
+                followup.status ===
+                filterFollowup
+              );
+            }
+          );
+      }
+
+      // =========================
+      // TOTAL
+      // =========================
 
       setTotalData(
         count || 0
@@ -287,11 +314,12 @@ export default function ContactsPage() {
       // =========================
 
       const formattedData =
-        (data || []).map(
+        filteredData.map(
           (
             item: any,
             index: number
           ) => ({
+
             ...item,
 
             no:
@@ -299,79 +327,95 @@ export default function ContactsPage() {
               index +
               1,
 
-            next_followup_at:
-              item.next_followup_at
-                ? new Date(
-                    item.next_followup_at
-                  ).toLocaleDateString(
-                    "id-ID"
-                  )
-                : "-",
+            contact_type: (
+
+              <ContactTypeBadge
+                type={
+                  item.contact_type
+                }
+                size="sm"
+              />
+
+            ),
+
+            priority: (
+
+              <PriorityBadge
+                priority={
+                  item.priority
+                }
+                size="sm"
+              />
+
+            ),
 
             status: (
-              <span
-                className={`
+
+              <div
+                className="
                   inline-flex
+                  items-center
+
                   rounded-full
+
+                  bg-slate-100
+
                   px-3
                   py-1
+
                   text-xs
                   font-semibold
 
-                  ${
-                    item.status ===
-                    "New"
-                      ? `
-                        bg-blue-100
-                        text-blue-700
-                      `
-                      : item.status ===
-                        "Contacted"
-                      ? `
-                        bg-yellow-100
-                        text-yellow-700
-                      `
-                      : item.status ===
-                        "Active"
-                      ? `
-                        bg-green-100
-                        text-green-700
-                      `
-                      : item.status ===
-                        "Inactive"
-                      ? `
-                        bg-gray-100
-                        text-gray-700
-                      `
-                      : `
-                        bg-red-100
-                        text-red-700
-                      `
-                  }
-                `}
+                  text-slate-600
+                "
               >
                 {item.status ||
                   "-"}
-              </span>
+              </div>
+
+            ),
+
+            next_followup_at: (
+
+              <FollowupBadge
+                date={
+                  item.next_followup_at
+                }
+                size="sm"
+              />
+
             ),
 
             action: (
+
               <div
                 onClick={(e) =>
                   e.stopPropagation()
                 }
               >
+
                 <ViewActions
                   items={[
+
                     {
                       label:
                         "WhatsApp",
 
                       onClick:
                         async () => {
-                          openWhatsApp(
-                            item.phone
-                          );
+
+                          await openWhatsApp({
+                            phone:
+                              item.phone,
+
+                            contactId:
+                              item.contact_id,
+
+                            source:
+                              "Contacts Table",
+                          });
+
+                          fetchContacts();
                         },
                     },
 
@@ -380,26 +424,29 @@ export default function ContactsPage() {
                         "Create Lead",
 
                       onClick: () => {
-                        setSelectedContact(
-                          item
-                        );
+
+                        setSelectedContact({
+
+                          contact_id:
+                            item.contact_id,
+
+                          name:
+                            item.name,
+
+                          phone:
+                            item.phone,
+
+                          source_id:
+                            item.source_id,
+
+                          company:
+                            item.company,
+
+                          contact_type:
+                            item.contact_type,
+                        });
 
                         setOpenAddLeadModal(
-                          true
-                        );
-                      },
-                    },
-
-                    {
-                      label:
-                        "Create Inquiry",
-
-                      onClick: () => {
-                        setSelectedContact(
-                          item
-                        );
-
-                        setOpenAddInquiryModal(
                           true
                         );
                       },
@@ -410,6 +457,7 @@ export default function ContactsPage() {
                         "Edit",
 
                       onClick: () => {
+
                         setEditData(
                           item
                         );
@@ -424,8 +472,11 @@ export default function ContactsPage() {
                       label:
                         "Delete",
 
+                      danger: true,
+
                       onClick:
                         async () => {
+
                           const confirmDelete =
                             window.confirm(
                               "Delete this contact?"
@@ -433,25 +484,30 @@ export default function ContactsPage() {
 
                           if (
                             !confirmDelete
-                          )
+                          ) {
+
                             return;
+                          }
 
                           const {
                             error,
-                          } =
-                            await supabase
-                              .from(
-                                "contacts"
-                              )
-                              .delete()
-                              .eq(
-                                "id",
-                                item.id
-                              );
+                          } = await supabase
+
+                            .from(
+                              "contacts"
+                            )
+
+                            .delete()
+
+                            .eq(
+                              "contact_id",
+                              item.contact_id
+                            );
 
                           if (
                             error
                           ) {
+
                             console.log(
                               error
                             );
@@ -464,7 +520,9 @@ export default function ContactsPage() {
                     },
                   ]}
                 />
+
               </div>
+
             ),
           })
         );
@@ -472,9 +530,13 @@ export default function ContactsPage() {
       setData(
         formattedData
       );
+
     } catch (error) {
+
       console.log(error);
+
     } finally {
+
       setLoading(false);
     }
   }
@@ -484,12 +546,15 @@ export default function ContactsPage() {
   // =========================
 
   useEffect(() => {
+
     fetchContacts();
+
   }, [
     currentPage,
-    searchName,
-    searchPhone,
+    search,
     filterStatus,
+    filterPriority,
+    filterFollowup,
     sortOrder,
   ]);
 
@@ -506,8 +571,14 @@ export default function ContactsPage() {
       )
     );
 
+  // =========================
+  // RENDER
+  // =========================
+
   return (
+
     <MainLayout>
+
       <div className="space-y-6">
 
         {/* HEADER */}
@@ -523,23 +594,25 @@ export default function ContactsPage() {
         {/* FILTERS */}
 
         <ContactsFilters
-          searchName={
-            searchName
-          }
-          setSearchName={
-            setSearchName
-          }
-          searchPhone={
-            searchPhone
-          }
-          setSearchPhone={
-            setSearchPhone
-          }
+          search={search}
+          setSearch={setSearch}
           filterStatus={
             filterStatus
           }
           setFilterStatus={
             setFilterStatus
+          }
+          filterPriority={
+            filterPriority
+          }
+          setFilterPriority={
+            setFilterPriority
+          }
+          filterFollowup={
+            filterFollowup
+          }
+          setFilterFollowup={
+            setFilterFollowup
           }
           sortOrder={
             sortOrder
@@ -547,12 +620,16 @@ export default function ContactsPage() {
           setSortOrder={
             setSortOrder
           }
+          totalData={totalData}
           onReset={() => {
-            setSearchName("");
 
-            setSearchPhone("");
+            setSearch("");
 
             setFilterStatus("");
+
+            setFilterPriority("");
+
+            setFilterFollowup("");
 
             setSortOrder(
               "desc"
@@ -570,8 +647,38 @@ export default function ContactsPage() {
           onRowClick={(
             row
           ) => {
+
             setSelectedRow(
               row
+            );
+          }}
+          onCreateLead={(
+            row
+          ) => {
+
+            setSelectedContact({
+
+              contact_id:
+                row.contact_id,
+
+              name:
+                row.name,
+
+              phone:
+                row.phone,
+
+              source_id:
+                row.source_id,
+
+              company:
+                row.company,
+
+              contact_type:
+                row.contact_type,
+            });
+
+            setOpenAddLeadModal(
+              true
             );
           }}
         />
@@ -585,6 +692,7 @@ export default function ContactsPage() {
           onRowClick={(
             row
           ) => {
+
             setSelectedRow(
               row
             );
@@ -631,11 +739,13 @@ export default function ContactsPage() {
         <AddContactModal
           open={openAddModal}
           onClose={() => {
+
             setOpenAddModal(
               false
             );
           }}
           onSuccess={() => {
+
             fetchContacts();
 
             setOpenAddModal(
@@ -650,6 +760,7 @@ export default function ContactsPage() {
           open={openEditModal}
           data={editData}
           onClose={() => {
+
             setOpenEditModal(
               false
             );
@@ -657,6 +768,7 @@ export default function ContactsPage() {
             setEditData(null);
           }}
           onSuccess={() => {
+
             fetchContacts();
 
             setOpenEditModal(
@@ -677,16 +789,6 @@ export default function ContactsPage() {
             selectedContact
           }
           onClose={() => {
-            setOpenAddLeadModal(
-              false
-            );
-
-            setSelectedContact(
-              null
-            );
-          }}
-          onSuccess={() => {
-            fetchContacts();
 
             setOpenAddLeadModal(
               false
@@ -696,30 +798,11 @@ export default function ContactsPage() {
               null
             );
           }}
-        />
-
-        {/* ADD INQUIRY */}
-
-        <AddInquiryModal
-          open={
-            openAddInquiryModal
-          }
-          selectedContact={
-            selectedContact
-          }
-          onClose={() => {
-            setOpenAddInquiryModal(
-              false
-            );
-
-            setSelectedContact(
-              null
-            );
-          }}
           onSuccess={() => {
+
             fetchContacts();
 
-            setOpenAddInquiryModal(
+            setOpenAddLeadModal(
               false
             );
 
@@ -740,6 +823,7 @@ export default function ContactsPage() {
             )
           }
           onEdit={() => {
+
             setEditData(
               selectedRow
             );
@@ -751,6 +835,7 @@ export default function ContactsPage() {
         />
 
       </div>
+
     </MainLayout>
   );
 }

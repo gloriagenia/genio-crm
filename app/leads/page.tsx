@@ -2,77 +2,40 @@
 
 import {
   useEffect,
+  useMemo,
   useState,
 } from "react";
 
-import MainLayout from "@/components/layout/MainLayout";
+import MainLayout
+from "@/components/layout/MainLayout";
 
-import DataTable from "@/components/tables/DataTable";
+import LeadsHeader
+from "@/components/leads/LeadsHeader";
 
-import Pagination from "@/components/ui/Pagination";
+import LeadsStatsCards
+from "@/components/leads/LeadsStatsCards";
 
-import AddButton from "@/components/buttons/AddButton";
+import LeadsFilters
+from "@/components/leads/LeadsFilters";
 
-import ViewActions from "@/components/actions/ViewActions";
+import LeadsTable
+from "@/components/leads/LeadsTable";
 
-import AddLeadsModal from "@/components/modals/AddLeadsModal";
+import AddLeadsModal
+from "@/components/modals/AddLeadsModal";
 
-import EditLeadsModal from "@/components/modals/EditLeadsModal";
+import EditLeadsModal
+from "@/components/modals/EditLeadsModal";
 
-import LeadDetailPopUp from "@/components/popup/LeadDetailPopUp";
+import LeadDetailPopUp
+from "@/components/popup/LeadDetailPopUp";
 
-import { supabase } from "@/lib/supabase";
+import { supabase }
+from "@/lib/supabase";
 
 // =========================
-// COLUMNS
+// COMPONENT
 // =========================
-
-const columns = [
-  {
-    key: "no",
-    label: "No",
-  },
-
-  {
-    key: "contact",
-    label: "Contact",
-  },
-
-  {
-    key: "requirement",
-    label: "Requirement",
-  },
-
-  {
-    key: "budget",
-    label: "Budget",
-  },
-
-  {
-    key: "location",
-    label: "Location",
-  },
-
-  {
-    key: "status",
-    label: "Status",
-  },
-
-  {
-    key: "aging",
-    label: "Aging",
-  },
-
-  {
-    key: "priority",
-    label: "Priority",
-  },
-
-  {
-    key: "action",
-    label: "Action",
-  },
-];
 
 export default function LeadsPage() {
 
@@ -80,17 +43,24 @@ export default function LeadsPage() {
   // STATES
   // =========================
 
-  const [data, setData] =
-    useState<any[]>([]);
+  const [
+    loading,
+    setLoading,
+  ] = useState(false);
 
-  const [loading, setLoading] =
-    useState(false);
+  const [
+    leads,
+    setLeads,
+  ] = useState<any[]>([]);
 
-  const [selectedRow, setSelectedRow] =
-    useState<any>(null);
+  const [
+    total,
+    setTotal,
+  ] = useState(0);
 
-  const [editData, setEditData] =
-    useState<any>(null);
+  // =========================
+  // MODALS
+  // =========================
 
   const [
     openAddModal,
@@ -103,30 +73,44 @@ export default function LeadsPage() {
   ] = useState(false);
 
   const [
-    totalData,
-    setTotalData,
-  ] = useState(0);
+    selectedLead,
+    setSelectedLead,
+  ] = useState<any>(null);
+
+  const [
+    detailLeadId,
+    setDetailLeadId,
+  ] = useState<number | null>(
+    null
+  );
 
   // =========================
   // FILTERS
   // =========================
 
-  const [search, setSearch] =
-    useState("");
-
   const [
-    filterPriority,
-    setFilterPriority,
+    search,
+    setSearch,
   ] = useState("");
 
   const [
-    filterMarketType,
-    setFilterMarketType,
+    city,
+    setCity,
   ] = useState("");
 
   const [
-    filterStatus,
-    setFilterStatus,
+    district,
+    setDistrict,
+  ] = useState("");
+
+  const [
+    propertyType,
+    setPropertyType,
+  ] = useState("");
+
+  const [
+    marketType,
+    setMarketType,
   ] = useState("");
 
   // =========================
@@ -138,202 +122,10 @@ export default function LeadsPage() {
     setCurrentPage,
   ] = useState(1);
 
-  const rowsPerPage = 10;
-
-  const startIndex =
-    (currentPage - 1) *
-    rowsPerPage;
-
-  const endIndex =
-    startIndex +
-    rowsPerPage -
-    1;
+  const limit = 10;
 
   // =========================
-  // FORMAT CURRENCY
-  // =========================
-
-  function formatCurrency(
-    value?: number
-  ) {
-
-    if (!value) return "-";
-
-    return `Rp ${new Intl.NumberFormat(
-      "id-ID"
-    ).format(value)}`;
-  }
-
-  // =========================
-  // SLA
-  // =========================
-
-  function getSLA(
-    priority: string
-  ) {
-
-    switch (priority) {
-
-      case "HOT":
-        return 1;
-
-      case "WARM":
-        return 3;
-
-      case "COLD":
-        return 7;
-
-      default:
-        return 3;
-    }
-  }
-
-  // =========================
-  // AGING
-  // =========================
-
-  function getAging(
-    lastContact?: string
-  ) {
-
-    if (!lastContact) {
-
-      return {
-        days: 999,
-        label:
-          "No Follow Up",
-      };
-    }
-
-    const today =
-      new Date();
-
-    const last =
-      new Date(
-        lastContact
-      );
-
-    const diff =
-      today.getTime() -
-      last.getTime();
-
-    const days =
-      Math.floor(
-        diff /
-          (1000 *
-            60 *
-            60 *
-            24)
-      );
-
-    return {
-
-      days,
-
-      label:
-        days === 0
-          ? "Today"
-          : `${days} Days`,
-    };
-  }
-
-  // =========================
-  // PRIORITY COLOR
-  // =========================
-
-  function getPriorityClass(
-    priority: string
-  ) {
-
-    switch (priority) {
-
-      case "HOT":
-
-        return `
-          bg-red-100
-          text-red-700
-        `;
-
-      case "WARM":
-
-        return `
-          bg-orange-100
-          text-orange-700
-        `;
-
-      case "COLD":
-
-        return `
-          bg-gray-100
-          text-gray-700
-        `;
-
-      default:
-
-        return `
-          bg-gray-100
-          text-gray-700
-        `;
-    }
-  }
-
-  // =========================
-  // WHATSAPP
-  // =========================
-
-  function openWhatsApp(
-    phone?: string
-  ) {
-
-    if (!phone) return;
-
-    let cleanPhone =
-      phone.replace(
-        /\D/g,
-        ""
-      );
-
-    if (
-      cleanPhone.startsWith(
-        "0"
-      )
-    ) {
-
-      cleanPhone =
-        "62" +
-        cleanPhone.slice(1);
-    }
-
-    if (
-      cleanPhone.startsWith(
-        "8"
-      )
-    ) {
-
-      cleanPhone =
-        "62" +
-        cleanPhone;
-    }
-
-    if (
-      !cleanPhone.startsWith(
-        "62"
-      )
-    ) {
-
-      cleanPhone =
-        "62" +
-        cleanPhone;
-    }
-
-    window.open(
-      `https://wa.me/${cleanPhone}`,
-      "_blank"
-    );
-  }
-
-  // =========================
-  // FETCH
+  // FETCH LEADS
   // =========================
 
   async function fetchLeads() {
@@ -342,34 +134,37 @@ export default function LeadsPage() {
 
       setLoading(true);
 
+      const from =
+        (currentPage - 1) *
+        limit;
+
+      const to =
+        from + limit - 1;
+
       let query = supabase
 
         .from("leads")
 
-        .select(
-          `
-            *,
-
-            contacts!leads_contact_id_fkey (
-              contact_id,
-              name,
-              phone
-            ),
-
-            leads_statuses!leads_lead_status_id_fkey (
-              lead_status_id,
-              lead_status_name
-            ),
-
-            sources!leads_source_id_fkey (
-              source_id,
-              source_name
-            )
-          `,
-          {
-            count: "exact",
-          }
-        );
+        .select(`
+          *,
+          contacts (
+            contact_id,
+            name,
+            phone
+          ),
+          leads_statuses (
+            lead_status_name
+          ),
+          property_type (
+            property_type_name
+          ),
+          market_types (
+            market_type_name
+          )
+        `,
+        {
+          count: "exact",
+        });
 
       // =========================
       // SEARCH
@@ -378,56 +173,70 @@ export default function LeadsPage() {
       if (search) {
 
         query = query.or(`
-          requirements.ilike.%${search}%,
           district.ilike.%${search}%,
-          city.ilike.%${search}%
+          city.ilike.%${search}%,
+          requirements.ilike.%${search}%,
+          contacts.name.ilike.%${search}%,
+          contacts.phone.ilike.%${search}%
         `);
       }
 
       // =========================
-      // FILTER PRIORITY
+      // FILTER CITY
       // =========================
 
-      if (
-        filterPriority
-      ) {
+      if (city) {
 
-        query = query.eq(
-          "priority",
-          filterPriority
+        query = query.ilike(
+          "city",
+          `%${city}%`
         );
       }
 
       // =========================
-      // FILTER MARKET
+      // FILTER DISTRICT
       // =========================
 
-      if (
-        filterMarketType
-      ) {
+      if (district) {
 
-        query = query.eq(
-          "market_type",
-          filterMarketType
+        query = query.ilike(
+          "district",
+          `%${district}%`
         );
       }
 
       // =========================
-      // FILTER STATUS
+      // FILTER PROPERTY TYPE
       // =========================
 
-      if (filterStatus) {
+      if (propertyType) {
 
         query = query.eq(
-          "lead_status_id",
-          filterStatus
+          "property_type_id",
+          propertyType
         );
       }
+
+      // =========================
+      // FILTER MARKET TYPE
+      // =========================
+
+      if (marketType) {
+
+        query = query.eq(
+          "market_type_id",
+          marketType
+        );
+      }
+
+      // =========================
+      // EXECUTE
+      // =========================
 
       const {
         data,
-        error,
         count,
+        error,
       } = await query
 
         .order(
@@ -438,404 +247,139 @@ export default function LeadsPage() {
         )
 
         .range(
-          startIndex,
-          endIndex
+          from,
+          to
         );
-
-      // =========================
-      // ERROR
-      // =========================
 
       if (error) {
 
-        console.error(error);
-
-        alert(error.message);
+        console.log(error);
 
         return;
       }
-
-      setTotalData(
-        count || 0
-      );
 
       // =========================
       // FORMAT DATA
       // =========================
 
-      const formattedData =
+      const formatted =
         (data || []).map(
-          (
-            item: any,
-            index: number
-          ) => {
+          (item: any) => {
 
-            const aging =
-              getAging(
-                item.last_contact
-              );
+            // =========================
+            // LAST CONTACT
+            // =========================
 
-            const sla =
-              getSLA(
-                item.priority
-              );
+            let lastRelative =
+              "-";
 
-            const overdue =
-              aging.days > sla;
+            if (
+              item.last_contact
+            ) {
+
+              const diff =
+                Math.floor(
+                  (
+                    new Date().getTime() -
+                    new Date(
+                      item.last_contact
+                    ).getTime()
+                  ) /
+                  (
+                    1000 *
+                    60 *
+                    60 *
+                    24
+                  )
+                );
+
+              if (diff === 0) {
+
+                lastRelative =
+                  "Today";
+
+              } else if (
+                diff === 1
+              ) {
+
+                lastRelative =
+                  "1 day ago";
+
+              } else {
+
+                lastRelative =
+                  `${diff} days ago`;
+              }
+            }
+
+            // =========================
+            // NEXT FOLLOWUP
+            // =========================
+
+            let nextFormatted =
+              "-";
+
+            if (
+              item.next_followup
+            ) {
+
+              nextFormatted =
+                new Date(
+                  item.next_followup
+                ).toLocaleDateString(
+                  "en-GB",
+                  {
+                    day: "2-digit",
+                    month: "long",
+                    year: "numeric",
+                  }
+                );
+            }
+
+            // =========================
+            // OVERDUE
+            // =========================
+
+            let overdue =
+              false;
+
+            if (
+              item.next_followup
+            ) {
+
+              overdue =
+                new Date(
+                  item.next_followup
+                ) < new Date();
+            }
 
             return {
 
               ...item,
 
-              no:
-                startIndex +
-                index +
-                1,
+              is_overdue:
+                overdue,
 
-              // =========================
-              // CONTACT
-              // =========================
+              last_contact_relative:
+                lastRelative,
 
-              contact: (
-
-                <div className="space-y-1">
-
-                  <div className="font-medium">
-                    {
-                      item.contacts
-                        ?.name || "-"
-                    }
-                  </div>
-
-                  <div
-                    className="
-                      text-xs
-                      text-gray-500
-                    "
-                  >
-                    {
-                      item.contacts
-                        ?.phone || "-"
-                    }
-                  </div>
-
-                </div>
-              ),
-
-              // =========================
-              // REQUIREMENT
-              // =========================
-
-              requirement: (
-
-                <div className="space-y-1">
-
-                  <div className="text-sm">
-                    {
-                      item.market_type ||
-                      "-"
-                    }
-                  </div>
-
-                  <div
-                    className="
-                      text-xs
-                      text-gray-500
-                    "
-                  >
-                    {
-                      item.property_type_id ||
-                      "-"
-                    }
-                  </div>
-
-                </div>
-              ),
-
-              // =========================
-              // BUDGET
-              // =========================
-
-              budget: (
-
-                <div className="space-y-1">
-
-                  <div className="text-sm">
-                    {formatCurrency(
-                      item.budget_min
-                    )}
-                  </div>
-
-                  <div
-                    className="
-                      text-xs
-                      text-gray-500
-                    "
-                  >
-                    -
-                    {" "}
-                    {formatCurrency(
-                      item.budget_max
-                    )}
-                  </div>
-
-                </div>
-              ),
-
-              // =========================
-              // LOCATION
-              // =========================
-
-              location: (
-
-                <div className="space-y-1">
-
-                  <div className="text-sm">
-                    {
-                      item.district ||
-                      "-"
-                    }
-                  </div>
-
-                  <div
-                    className="
-                      text-xs
-                      text-gray-500
-                    "
-                  >
-                    {
-                      item.city ||
-                      "-"
-                    }
-                  </div>
-
-                </div>
-              ),
-
-              // =========================
-              // STATUS
-              // =========================
-
-              status: (
-
-                <span
-                  className="
-                    inline-flex
-                    rounded-full
-                    bg-blue-100
-                    text-blue-700
-                    px-3
-                    py-1
-                    text-xs
-                    font-semibold
-                  "
-                >
-                  {
-                    item
-                      .leads_statuses
-                      ?.lead_status_name ||
-                    "-"
-                  }
-                </span>
-              ),
-
-              // =========================
-              // AGING
-              // =========================
-
-              aging: (
-
-                <div>
-
-                  {overdue ? (
-
-                    <div
-                      className="
-                        text-red-600
-                        font-semibold
-                        text-sm
-                      "
-                    >
-                      ⚠ Overdue
-                      {" "}
-                      {
-                        aging.label
-                      }
-                    </div>
-
-                  ) : (
-
-                    <div
-                      className="
-                        text-sm
-                      "
-                    >
-                      {
-                        aging.label
-                      }
-                    </div>
-
-                  )}
-
-                </div>
-              ),
-
-              // =========================
-              // PRIORITY
-              // =========================
-
-              priority: (
-
-                <span
-                  className={`
-                    inline-flex
-                    rounded-full
-                    px-3
-                    py-1
-                    text-xs
-                    font-semibold
-
-                    ${getPriorityClass(
-                      item.priority
-                    )}
-                  `}
-                >
-                  {
-                    item.priority ||
-                    "-"
-                  }
-                </span>
-              ),
-
-              // =========================
-              // ACTION
-              // =========================
-
-              action: (
-
-                <div
-                  onClick={(e) =>
-                    e.stopPropagation()
-                  }
-                >
-
-                  <ViewActions
-                    items={[
-
-                      // =========================
-                      // WHATSAPP
-                      // =========================
-
-                      {
-                        label:
-                          "WhatsApp",
-
-                        onClick:
-                          () => {
-
-                            openWhatsApp(
-                              item
-                                .contacts
-                                ?.phone
-                            );
-                          },
-                      },
-
-                      // =========================
-                      // EDIT
-                      // =========================
-
-                      {
-                        label:
-                          "Edit",
-
-                        onClick:
-                          () => {
-
-                            setEditData(
-                              item
-                            );
-
-                            setOpenEditModal(
-                              true
-                            );
-                          },
-                      },
-
-                      // =========================
-                      // DELETE
-                      // =========================
-
-                      {
-                        label:
-                          "Delete",
-
-                        danger:
-                          true,
-
-                        onClick:
-                          async () => {
-
-                            const confirmDelete =
-                              confirm(
-                                "Delete this lead?"
-                              );
-
-                            if (
-                              !confirmDelete
-                            )
-                              return;
-
-                            const {
-                              error,
-                            } =
-                              await supabase
-
-                                .from(
-                                  "leads"
-                                )
-
-                                .delete()
-
-                                .eq(
-                                  "leads_id",
-                                  item.leads_id
-                                );
-
-                            if (
-                              error
-                            ) {
-
-                              console.error(
-                                error
-                              );
-
-                              alert(
-                                error.message
-                              );
-
-                              return;
-                            }
-
-                            fetchLeads();
-                          },
-                      },
-                    ]}
-                  />
-
-                </div>
-              ),
+              next_followup_formatted:
+                nextFormatted,
             };
           }
         );
 
-      setData(
-        formattedData
+      setLeads(
+        formatted
+      );
+
+      setTotal(
+        count || 0
       );
 
     } catch (error) {
 
-      console.error(error);
+      console.log(error);
 
     } finally {
 
@@ -854,9 +398,10 @@ export default function LeadsPage() {
   }, [
     currentPage,
     search,
-    filterPriority,
-    filterMarketType,
-    filterStatus,
+    city,
+    district,
+    propertyType,
+    marketType,
   ]);
 
   // =========================
@@ -864,338 +409,548 @@ export default function LeadsPage() {
   // =========================
 
   const totalPages =
-    Math.max(
-      1,
-      Math.ceil(
-        totalData /
-          rowsPerPage
+    useMemo(() => {
+
+      return Math.max(
+        1,
+        Math.ceil(
+          total / limit
+        )
+      );
+
+    }, [
+      total,
+    ]);
+
+  // =========================
+  // STATS
+  // =========================
+
+  const stats =
+    useMemo(() => {
+
+      const today =
+        new Date()
+          .toISOString()
+          .split("T")[0];
+
+      const followUpToday =
+        leads.filter(
+          (
+            item
+          ) =>
+            item.next_followup?.startsWith(
+              today
+            )
+        ).length;
+
+      const converted =
+        leads.filter(
+          (
+            item
+          ) =>
+            item.inquiry_id
+        ).length;
+
+      const conversionRate =
+        total > 0
+          ? Math.round(
+              (
+                converted /
+                total
+              ) * 100
+            )
+          : 0;
+
+      return {
+
+        totalLeads:
+          total,
+
+        followUpToday,
+
+        converted,
+
+        conversionRate,
+      };
+
+    }, [
+      leads,
+      total,
+    ]);
+
+  // =========================
+  // WHATSAPP
+  // =========================
+
+  function handleWhatsapp(
+    lead: any
+  ) {
+
+    const phone =
+      lead?.contacts
+        ?.phone;
+
+    if (!phone)
+      return;
+
+    let clean =
+      phone.replace(
+        /\D/g,
+        ""
+      );
+
+    if (
+      clean.startsWith(
+        "0"
       )
+    ) {
+
+      clean =
+        "62" +
+        clean.slice(1);
+    }
+
+    window.open(
+      `https://wa.me/${clean}`,
+      "_blank"
     );
+  }
+
+  // =========================
+  // DELETE
+  // =========================
+
+  async function handleDelete(
+    lead: any
+  ) {
+
+    const confirmDelete =
+      confirm(
+        "Delete this lead?"
+      );
+
+    if (!confirmDelete)
+      return;
+
+    const {
+      error,
+    } = await supabase
+
+      .from("leads")
+
+      .delete()
+
+      .eq(
+        "leads_id",
+        lead.leads_id
+      );
+
+    if (error) {
+
+      alert(
+        error.message
+      );
+
+      return;
+    }
+
+    fetchLeads();
+  }
+
+  // =========================
+// CREATE INQUIRY
+// =========================
+
+async function handleCreateInquiry(
+  lead: any
+) {
+
+  try {
+
+    const payload = {
+
+      lead_id:
+        lead.leads_id,
+
+      contact_id:
+        lead.contact_id || null,
+
+      source_id:
+        lead.source_id || null,
+
+      property_type_id:
+        lead.property_type_id || null,
+
+      inquiry_status_id:
+        1,
+
+      inquiry_date:
+        new Date(),
+
+      last_followup:
+        lead.last_contact || null,
+
+      notes:
+        lead.requirements || null,
+
+      requirement_sum:
+        lead.requirements || null,
+
+      budget_min:
+        lead.budget_min || null,
+
+      budget_max:
+        lead.budget_max || null,
+
+      city:
+        lead.city || null,
+
+      district:
+        lead.district || null,
+
+      market_type:
+        lead.market_types
+          ?.market_type_name || null,
+
+      inquiry_category:
+        "Lead Conversion",
+
+      next_action:
+        "Follow up lead",
+
+      next_followup_at:
+        lead.next_followup || null,
+
+      priority:
+        lead.priority || "WARM",
+
+      building_size_min:
+        lead.building_size_min || null,
+
+      updated_at:
+        new Date(),
+    };
+
+    const {
+      data,
+      error,
+    } = await supabase
+
+      .from("inquiries")
+
+      .insert(payload)
+
+      .select()
+
+      .single();
+
+    if (error) {
+
+      console.log(error);
+
+      alert(
+        error.message
+      );
+
+      return;
+    }
+
+    alert(
+      "Inquiry created successfully"
+    );
+
+    console.log(data);
+
+  } catch (error) {
+
+    console.log(error);
+
+    alert(
+      "Failed to create inquiry"
+    );
+  }
+}
+
+  // =========================
+  // RENDER
+  // =========================
 
   return (
 
     <MainLayout>
 
-      <div className="space-y-6">
+      <div
+        className="
+          space-y-5
+
+          pb-10
+        "
+      >
 
         {/* HEADER */}
 
-        <div
-          className="
-            flex
-            items-center
-            justify-between
-          "
-        >
+        <LeadsHeader
 
-          <h1
-            className="
-              text-2xl
-              font-bold
-            "
-          >
-            Leads
-          </h1>
+          onAddLead={() =>
+            setOpenAddModal(
+              true
+            )
+          }
 
-          <AddButton
-            label="Add Lead"
+        />
 
-            onAdd={() => {
+        {/* STATS */}
 
-              setOpenAddModal(
-                true
-              );
-            }}
+        <LeadsStatsCards
 
-            onImport={() => {
+          totalLeads={
+            stats.totalLeads
+          }
 
-              console.log(
-                "Import CSV"
-              );
-            }}
-          />
+          followUpToday={
+            stats.followUpToday
+          }
 
-        </div>
+          converted={
+            stats.converted
+          }
 
-        {/* FILTER */}
+          conversionRate={
+            stats.conversionRate
+          }
 
-        <div
-          className="
-            border
-            rounded-2xl
-            bg-white
-            p-4
-            flex
-            flex-wrap
-            gap-3
-          "
-        >
+        />
 
-          <input
-            type="text"
-            placeholder="Search"
-            value={search}
-            onChange={(e) =>
-              setSearch(
-                e.target.value
-              )
-            }
-            className="
-              border
-              rounded-xl
-              px-4
-              py-2
-            "
-          />
+        {/* FILTERS */}
 
-          <select
-            value={
-              filterPriority
-            }
-            onChange={(e) =>
-              setFilterPriority(
-                e.target.value
-              )
-            }
-            className="
-              border
-              rounded-xl
-              px-4
-              py-2
-            "
-          >
+        <LeadsFilters
 
-            <option value="">
-              All Priority
-            </option>
+          search={search}
 
-            <option value="HOT">
-              HOT
-            </option>
+          city={city}
 
-            <option value="WARM">
-              WARM
-            </option>
+          district={district}
 
-            <option value="COLD">
-              COLD
-            </option>
+          propertyType={
+            propertyType
+          }
 
-          </select>
+          marketType={
+            marketType
+          }
 
-          <select
-            value={
-              filterMarketType
-            }
-            onChange={(e) =>
-              setFilterMarketType(
-                e.target.value
-              )
-            }
-            className="
-              border
-              rounded-xl
-              px-4
-              py-2
-            "
-          >
+          onSearchChange={
+            setSearch
+          }
 
-            <option value="">
-              All Market
-            </option>
+          onCityChange={
+            setCity
+          }
 
-            <option value="Sale">
-              Sale
-            </option>
+          onDistrictChange={
+            setDistrict
+          }
 
-            <option value="Rent">
-              Rent
-            </option>
+          onPropertyTypeChange={
+            setPropertyType
+          }
 
-            <option value="Sale & Rent">
-              Sale & Rent
-            </option>
+          onMarketTypeChange={
+            setMarketType
+          }
 
-          </select>
+          onReset={() => {
 
-          <button
-            onClick={() => {
+            setSearch("");
 
-              setSearch("");
+            setCity("");
 
-              setFilterPriority("");
+            setDistrict("");
 
-              setFilterMarketType("");
+            setPropertyType("");
 
-              setFilterStatus("");
+            setMarketType("");
 
-              setCurrentPage(1);
+            setCurrentPage(1);
 
-            }}
-            className="
-              border
-              rounded-xl
-              px-4
-              py-2
-              hover:bg-gray-100
-            "
-          >
-            Reset
-          </button>
+          }}
 
-        </div>
+        />
 
         {/* TABLE */}
 
-        {loading ? (
+        <LeadsTable
 
-          <div
-            className="
-              border
-              rounded-xl
-              p-10
-              text-center
-              text-gray-500
-            "
-          >
-            Loading leads...
-          </div>
+          leads={leads}
 
-        ) : (
+          loading={loading}
 
-          <>
+          total={total}
 
-            <DataTable
-              columns={columns}
-
-              data={data}
-
-              onRowClick={(row) => {
-
-                setSelectedRow(
-                  row
-                );
-              }}
-            />
-
-            <Pagination
-              currentPage={
-                currentPage
-              }
-
-              totalPages={
-                totalPages
-              }
-
-              onFirst={() =>
-                setCurrentPage(1)
-              }
-
-              onPrev={() =>
-                setCurrentPage(
-                  Math.max(
-                    1,
-                    currentPage - 1
-                  )
-                )
-              }
-
-              onNext={() =>
-                setCurrentPage(
-                  Math.min(
-                    totalPages,
-                    currentPage + 1
-                  )
-                )
-              }
-
-              onLast={() =>
-                setCurrentPage(
-                  totalPages
-                )
-              }
-            />
-
-          </>
-
-        )}
-
-        {/* ADD */}
-
-        <AddLeadsModal
-          open={
-            openAddModal
+          currentPage={
+            currentPage
           }
 
-          onClose={() =>
-            setOpenAddModal(
-              false
-            )
+          totalPages={
+            totalPages
           }
 
-          onSuccess={() => {
+          limit={limit}
 
-            fetchLeads();
+          onPageChange={
+            setCurrentPage
+          }
 
-            setOpenAddModal(
-              false
+          onViewDetail={(
+            lead
+          ) => {
+
+            setDetailLeadId(
+              lead.leads_id
             );
+
           }}
-        />
 
-        {/* EDIT */}
-
-        <EditLeadsModal
-          open={
-            openEditModal
+          onWhatsapp={
+            handleWhatsapp
           }
 
-          data={editData}
+          onEdit={(
+            lead
+          ) => {
 
-          onClose={() => {
+            setSelectedLead(
+              lead
+            );
 
             setOpenEditModal(
-              false
+              true
             );
 
-            setEditData(
-              null
-            );
           }}
 
-          onSuccess={() => {
-
-            fetchLeads();
-
-            setOpenEditModal(
-              false
-            );
-
-            setEditData(
-              null
-            );
-          }}
-        />
-
-        {/* DETAIL */}
-
-        <LeadDetailPopUp
-          open={
-            !!selectedRow
+          onDelete={
+            handleDelete
           }
 
-          data={
-            selectedRow
+          onCreateInquiry={
+            handleCreateInquiry
           }
 
-          onClose={() =>
-            setSelectedRow(
-              null
-            )
-          }
         />
 
       </div>
+
+      {/* ========================= */}
+      {/* ADD MODAL */}
+      {/* ========================= */}
+
+      <AddLeadsModal
+
+        open={
+          openAddModal
+        }
+
+        onClose={() =>
+          setOpenAddModal(
+            false
+          )
+        }
+
+        onSuccess={() => {
+
+          fetchLeads();
+
+          setOpenAddModal(
+            false
+          );
+
+        }}
+
+      />
+
+      {/* ========================= */}
+      {/* EDIT MODAL */}
+      {/* ========================= */}
+
+      <EditLeadsModal
+
+        open={
+          openEditModal
+        }
+
+        data={
+          selectedLead
+        }
+
+        onClose={() => {
+
+          setOpenEditModal(
+            false
+          );
+
+          setSelectedLead(
+            null
+          );
+
+        }}
+
+        onSuccess={() => {
+
+          fetchLeads();
+
+          setOpenEditModal(
+            false
+          );
+
+          setSelectedLead(
+            null
+          );
+
+        }}
+
+      />
+
+      {/* ========================= */}
+      {/* DETAIL POPUP */}
+      {/* ========================= */}
+
+      <LeadDetailPopUp
+
+        open={
+          !!detailLeadId
+        }
+
+        leadId={
+          detailLeadId
+        }
+
+        onClose={() =>
+          setDetailLeadId(
+            null
+          )
+        }
+
+        onEdit={(
+          lead
+        ) => {
+
+          setDetailLeadId(
+            null
+          );
+
+          setSelectedLead(
+            lead
+          );
+
+          setOpenEditModal(
+            true
+          );
+
+        }}
+
+      />
 
     </MainLayout>
   );
