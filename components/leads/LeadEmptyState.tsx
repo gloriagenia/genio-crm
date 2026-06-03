@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 
 import { Button }
-from "@/components/ui/Button";
+from "@/components/ui/button";
 
 // =========================
 // TYPES
