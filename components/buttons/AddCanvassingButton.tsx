@@ -159,8 +159,9 @@ export default function AddCanvassingButton({
             "
           >
             Add Manually
-          </button>
+          </button> 
 
+ 
           <button
             onClick={() => {
 
@@ -181,6 +182,7 @@ export default function AddCanvassingButton({
           >
             Import CSV
           </button>
+
 
           <button
             onClick={() => {
