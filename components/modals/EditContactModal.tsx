@@ -201,13 +201,18 @@ export default function EditContactModal({
             : "",
 
         next_followup_at:
-          data.next_followup_at
-            ? new Date(
-                data.next_followup_at
-              )
-                .toISOString()
-                .slice(0, 16)
-            : "",
+  data.next_followup_at &&
+  !isNaN(
+    new Date(
+      data.next_followup_at
+    ).getTime()
+  )
+    ? new Date(
+        data.next_followup_at
+      )
+        .toISOString()
+        .slice(0, 16)
+    : "",
       });
     }
 

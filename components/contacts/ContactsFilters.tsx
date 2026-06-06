@@ -1,10 +1,13 @@
 "use client";
 
+import { useMemo, useState } from "react";
+
 import {
   Search,
   SlidersHorizontal,
-  Phone,
   RotateCcw,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 
 // =========================
@@ -12,45 +15,33 @@ import {
 // =========================
 
 interface ContactsFiltersProps {
-  // SEARCH
   search: string;
-
   setSearch: (
     value: string
   ) => void;
 
-  // STATUS
   filterStatus: string;
-
   setFilterStatus: (
     value: string
   ) => void;
 
-  // PRIORITY
   filterPriority: string;
-
   setFilterPriority: (
     value: string
   ) => void;
 
-  // FOLLOWUP
   filterFollowup: string;
-
   setFilterFollowup: (
     value: string
   ) => void;
 
-  // SORT
   sortOrder: string;
-
   setSortOrder: (
     value: string
   ) => void;
 
-  // RESET
   onReset: () => void;
 
-  // OPTIONAL
   totalData?: number;
 }
 
@@ -102,6 +93,25 @@ export default function ContactsFilters({
 
   totalData,
 }: ContactsFiltersProps) {
+  const [expanded, setExpanded] =
+    useState(false);
+
+  const activeFilters =
+    useMemo(() => {
+      let count = 0;
+
+      if (filterStatus) count++;
+      if (filterPriority) count++;
+      if (filterFollowup)
+        count++;
+
+      return count;
+    }, [
+      filterStatus,
+      filterPriority,
+      filterFollowup,
+    ]);
+
   return (
     <div
       className="
@@ -123,96 +133,87 @@ export default function ContactsFilters({
         overflow-hidden
       "
     >
-      {/* TOP BAR */}
+      {/* HEADER */}
       <div
         className="
-          flex
-          items-center
-          justify-between
-
           px-4
-          py-3
+          py-4
 
           border-b
           border-slate-100
         "
       >
-        {/* LEFT */}
-        <div>
-          <h2
-            className="
-              text-sm
-              font-bold
-              text-slate-900
-            "
-          >
-            Filters
-          </h2>
-
-          <p
-            className="
-              text-xs
-              text-slate-500
-              mt-0.5
-            "
-          >
-            {typeof totalData ===
-            "number"
-              ? `${totalData} contacts`
-              : "Manage contact list"}
-          </p>
-        </div>
-
-        {/* RIGHT */}
-        <button
-          onClick={onReset}
-          className="
-            inline-flex
-            items-center
-            gap-2
-
-            rounded-2xl
-
-            border
-            border-slate-200
-
-            px-3
-            py-2
-
-            text-xs
-            font-semibold
-
-            text-slate-600
-
-            hover:bg-slate-100
-
-            transition-all
-            duration-200
-          "
-        >
-          <RotateCcw
-            size={14}
-          />
-
-          Reset
-        </button>
-      </div>
-
-      {/* CONTENT */}
-      <div
-        className="
-          p-4
-
-          space-y-4
-        "
-      >
-        {/* SEARCH */}
         <div
           className="
-            relative
+            flex
+            items-start
+            justify-between
+            gap-3
           "
         >
-          {/* ICON */}
+          <div>
+            <h2
+              className="
+                text-sm
+                font-bold
+                text-slate-900
+              "
+            >
+              Contacts
+            </h2>
+
+            <p
+              className="
+                mt-0.5
+
+                text-xs
+                text-slate-500
+              "
+            >
+              {typeof totalData ===
+              "number"
+                ? `${totalData} contacts`
+                : "Manage contacts"}
+            </p>
+          </div>
+
+          <button
+            onClick={onReset}
+            className="
+              inline-flex
+              items-center
+              gap-2
+
+              rounded-2xl
+
+              border
+              border-slate-200
+
+              px-3
+              py-2
+
+              text-xs
+              font-semibold
+
+              text-slate-600
+
+              hover:bg-slate-100
+
+              transition-all
+            "
+          >
+            <RotateCcw
+              size={14}
+            />
+
+            Reset
+          </button>
+        </div>
+      </div>
+
+      {/* SEARCH */}
+      <div className="p-4">
+        <div className="relative">
           <Search
             size={18}
             className="
@@ -225,23 +226,21 @@ export default function ContactsFilters({
             "
           />
 
-          {/* INPUT */}
           <input
             type="text"
-            placeholder="
-              Search name,
-              phone,
-              company...
-            "
             value={search}
             onChange={(e) =>
               setSearch(
                 e.target.value
               )
             }
+            placeholder="
+              Search name,
+              phone,
+              company...
+            "
             className="
               w-full
-
               h-12
 
               rounded-2xl
@@ -260,7 +259,6 @@ export default function ContactsFilters({
               outline-none
 
               transition-all
-              duration-200
 
               focus:border-yellow-400
               focus:ring-4
@@ -269,389 +267,305 @@ export default function ContactsFilters({
           />
         </div>
 
-        {/* QUICK FILTERS */}
-        <div
+        {/* FILTER TOGGLE */}
+        <button
+          onClick={() =>
+            setExpanded(
+              !expanded
+            )
+          }
           className="
+            mt-4
+
             flex
+            w-full
             items-center
-            gap-2
+            justify-between
 
-            overflow-x-auto
+            rounded-2xl
 
-            pb-1
+            border
+            border-slate-200
 
-            scrollbar-hide
+            px-4
+            py-3
+
+            text-sm
+            font-semibold
+
+            text-slate-700
+
+            hover:bg-slate-50
+
+            transition-all
           "
         >
-          {/* FILTER LABEL */}
           <div
             className="
-              inline-flex
+              flex
               items-center
               gap-2
-
-              rounded-2xl
-
-              border
-              border-slate-200
-
-              bg-slate-50
-
-              px-3
-              py-2
-
-              text-xs
-              font-semibold
-
-              text-slate-500
-
-              shrink-0
             "
           >
             <SlidersHorizontal
-              size={14}
+              size={16}
             />
 
-            Filter
+            Filters
+
+            {activeFilters >
+              0 && (
+              <span
+                className="
+                  rounded-full
+
+                  bg-yellow-100
+
+                  px-2
+                  py-0.5
+
+                  text-[11px]
+                  font-bold
+
+                  text-yellow-700
+                "
+              >
+                {
+                  activeFilters
+                }
+              </span>
+            )}
           </div>
 
-          {/* TODAY */}
-          <button
-            onClick={() =>
-              setFilterFollowup(
-                filterFollowup ===
-                  "TODAY"
-                  ? ""
-                  : "TODAY"
-              )
-            }
-            className={`
-              shrink-0
+          {expanded ? (
+            <ChevronUp
+              size={18}
+            />
+          ) : (
+            <ChevronDown
+              size={18}
+            />
+          )}
+        </button>
+      </div>
 
-              rounded-2xl
-
-              border
-
-              px-3
-              py-2
-
-              text-xs
-              font-semibold
-
-              transition-all
-              duration-200
-
-              ${
-                filterFollowup ===
-                "TODAY"
-                  ? `
-                    border-orange-200
-                    bg-orange-50
-                    text-orange-700
-                  `
-                  : `
-                    border-slate-200
-                    bg-white
-                    text-slate-600
-                  `
-              }
-            `}
-          >
-            ⚠️ Today
-          </button>
-
-          {/* OVERDUE */}
-          <button
-            onClick={() =>
-              setFilterFollowup(
-                filterFollowup ===
-                  "OVERDUE"
-                  ? ""
-                  : "OVERDUE"
-              )
-            }
-            className={`
-              shrink-0
-
-              rounded-2xl
-
-              border
-
-              px-3
-              py-2
-
-              text-xs
-              font-semibold
-
-              transition-all
-              duration-200
-
-              ${
-                filterFollowup ===
-                "OVERDUE"
-                  ? `
-                    border-red-200
-                    bg-red-50
-                    text-red-700
-                  `
-                  : `
-                    border-slate-200
-                    bg-white
-                    text-slate-600
-                  `
-              }
-            `}
-          >
-            🚨 Overdue
-          </button>
-
-          {/* HOT */}
-          <button
-            onClick={() =>
-              setFilterPriority(
-                filterPriority ===
-                  "HOT"
-                  ? ""
-                  : "HOT"
-              )
-            }
-            className={`
-              shrink-0
-
-              rounded-2xl
-
-              border
-
-              px-3
-              py-2
-
-              text-xs
-              font-semibold
-
-              transition-all
-              duration-200
-
-              ${
-                filterPriority ===
-                "HOT"
-                  ? `
-                    border-red-200
-                    bg-red-50
-                    text-red-700
-                  `
-                  : `
-                    border-slate-200
-                    bg-white
-                    text-slate-600
-                  `
-              }
-            `}
-          >
-            🔥 HOT
-          </button>
-        </div>
-
-        {/* SELECTS */}
+      {/* EXPANDABLE FILTERS */}
+      {expanded && (
         <div
           className="
-            grid
-            grid-cols-1
-            sm:grid-cols-2
-            lg:grid-cols-4
-
-            gap-3
+            px-4
+            pb-4
           "
         >
-          {/* STATUS */}
-          <select
-            value={filterStatus}
-            onChange={(e) =>
-              setFilterStatus(
-                e.target.value
-              )
-            }
+          <div
             className="
-              h-11
+              grid
+              grid-cols-1
 
-              rounded-2xl
-
-              border
-              border-slate-200
-
-              bg-white
-
-              px-4
-
-              text-sm
-
-              outline-none
-
-              transition-all
-              duration-200
-
-              focus:border-yellow-400
-              focus:ring-4
-              focus:ring-yellow-100
+              gap-3
             "
           >
-            <option value="">
-              All Status
-            </option>
+            {/* STATUS */}
+            <select
+              value={
+                filterStatus
+              }
+              onChange={(e) =>
+                setFilterStatus(
+                  e.target.value
+                )
+              }
+              className="
+                h-12
 
-            {CONTACT_STATUS.map(
-              (status) => (
-                <option
-                  key={status}
-                  value={status}
-                >
-                  {status}
-                </option>
-              )
-            )}
-          </select>
+                rounded-2xl
 
-          {/* PRIORITY */}
-          <select
-            value={filterPriority}
-            onChange={(e) =>
-              setFilterPriority(
-                e.target.value
-              )
-            }
-            className="
-              h-11
+                border
+                border-slate-200
 
-              rounded-2xl
+                bg-white
 
-              border
-              border-slate-200
+                px-4
 
-              bg-white
+                text-sm
 
-              px-4
+                outline-none
 
-              text-sm
+                focus:border-yellow-400
+                focus:ring-4
+                focus:ring-yellow-100
+              "
+            >
+              <option value="">
+                All Status
+              </option>
 
-              outline-none
+              {CONTACT_STATUS.map(
+                (
+                  status
+                ) => (
+                  <option
+                    key={
+                      status
+                    }
+                    value={
+                      status
+                    }
+                  >
+                    {status}
+                  </option>
+                )
+              )}
+            </select>
 
-              transition-all
-              duration-200
+            {/* PRIORITY */}
+            <select
+              value={
+                filterPriority
+              }
+              onChange={(e) =>
+                setFilterPriority(
+                  e.target.value
+                )
+              }
+              className="
+                h-12
 
-              focus:border-yellow-400
-              focus:ring-4
-              focus:ring-yellow-100
-            "
-          >
-            <option value="">
-              All Priority
-            </option>
+                rounded-2xl
 
-            {CONTACT_PRIORITY.map(
-              (
-                priority
-              ) => (
-                <option
-                  key={priority}
-                  value={priority}
-                >
-                  {priority}
-                </option>
-              )
-            )}
-          </select>
+                border
+                border-slate-200
 
-          {/* FOLLOWUP */}
-          <select
-            value={filterFollowup}
-            onChange={(e) =>
-              setFilterFollowup(
-                e.target.value
-              )
-            }
-            className="
-              h-11
+                bg-white
 
-              rounded-2xl
+                px-4
 
-              border
-              border-slate-200
+                text-sm
 
-              bg-white
+                outline-none
 
-              px-4
+                focus:border-yellow-400
+                focus:ring-4
+                focus:ring-yellow-100
+              "
+            >
+              <option value="">
+                All Priority
+              </option>
 
-              text-sm
+              {CONTACT_PRIORITY.map(
+                (
+                  priority
+                ) => (
+                  <option
+                    key={
+                      priority
+                    }
+                    value={
+                      priority
+                    }
+                  >
+                    {priority}
+                  </option>
+                )
+              )}
+            </select>
 
-              outline-none
+            {/* FOLLOWUP */}
+            <select
+              value={
+                filterFollowup
+              }
+              onChange={(e) =>
+                setFilterFollowup(
+                  e.target.value
+                )
+              }
+              className="
+                h-12
 
-              transition-all
-              duration-200
+                rounded-2xl
 
-              focus:border-yellow-400
-              focus:ring-4
-              focus:ring-yellow-100
-            "
-          >
-            <option value="">
-              All Follow Up
-            </option>
+                border
+                border-slate-200
 
-            {FOLLOWUP_OPTIONS.map(
-              (
-                option
-              ) => (
-                <option
-                  key={option}
-                  value={option}
-                >
-                  {option}
-                </option>
-              )
-            )}
-          </select>
+                bg-white
 
-          {/* SORT */}
-          <select
-            value={sortOrder}
-            onChange={(e) =>
-              setSortOrder(
-                e.target.value
-              )
-            }
-            className="
-              h-11
+                px-4
 
-              rounded-2xl
+                text-sm
 
-              border
-              border-slate-200
+                outline-none
 
-              bg-white
+                focus:border-yellow-400
+                focus:ring-4
+                focus:ring-yellow-100
+              "
+            >
+              <option value="">
+                All Follow Up
+              </option>
 
-              px-4
+              {FOLLOWUP_OPTIONS.map(
+                (
+                  option
+                ) => (
+                  <option
+                    key={
+                      option
+                    }
+                    value={
+                      option
+                    }
+                  >
+                    {option}
+                  </option>
+                )
+              )}
+            </select>
 
-              text-sm
+            {/* SORT */}
+            <select
+              value={
+                sortOrder
+              }
+              onChange={(e) =>
+                setSortOrder(
+                  e.target.value
+                )
+              }
+              className="
+                h-12
 
-              outline-none
+                rounded-2xl
 
-              transition-all
-              duration-200
+                border
+                border-slate-200
 
-              focus:border-yellow-400
-              focus:ring-4
-              focus:ring-yellow-100
-            "
-          >
-            <option value="desc">
-              Newest First
-            </option>
+                bg-white
 
-            <option value="asc">
-              Oldest First
-            </option>
-          </select>
+                px-4
+
+                text-sm
+
+                outline-none
+
+                focus:border-yellow-400
+                focus:ring-4
+                focus:ring-yellow-100
+              "
+            >
+              <option value="desc">
+                Newest First
+              </option>
+
+              <option value="asc">
+                Oldest First
+              </option>
+            </select>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

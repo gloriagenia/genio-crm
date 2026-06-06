@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { openWhatsAppTemplate, } from "@/lib/whatsapp";
 
 import {
   MoreVertical,
@@ -89,51 +90,54 @@ export default function CanvassingActionMenu({
   // =========================
 
   async function handleWhatsapp() {
+  try {
+    setLoading(true);
 
-    try {
-
-      setLoading(true);
-
-      await supabase
-
-        .from("canvassing")
-
-        .update({
-
-          status:
-            item.status === "New"
-              ? "Ready to Contact"
-              : item.status,
-        })
-
-        .eq(
-          "canvassing_id",
-          item.canvassing_id
-        );
-
-      const phone =
-        normalizePhone(
-          item.phone || ""
-        );
-
-      window.open(
-        `https://wa.me/${phone}`,
-        "_blank"
+    await supabase
+      .from("canvassing")
+      .update({
+        status:
+          item.status === "New"
+            ? "Ready to Contact"
+            : item.status,
+      })
+      .eq(
+        "canvassing_id",
+        item.canvassing_id
       );
 
-      onRefresh?.();
+    await openWhatsAppTemplate(
+      "Canvassing",
+      item.phone || "",
+      {
+        name:
+          item.owner_name ||
+          item.name ||
+          "",
 
-    } catch (error) {
+        district:
+          item.district || "",
 
-      console.log(error);
+        city:
+          item.city || "",
 
-    } finally {
+        address:
+          item.address || "",
 
-      setLoading(false);
+        property_type:
+          item.property_type ||
+          "",
+      }
+    );
 
-      setOpen(false);
-    }
+    onRefresh?.();
+  } catch (error) {
+    console.log(error);
+  } finally {
+    setLoading(false);
+    setOpen(false);
   }
+}
 
   // =========================
   // DELETE

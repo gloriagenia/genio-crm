@@ -45,7 +45,6 @@ type ContactDetailPopUpProps = {
 
   onClose: () => void;
 
-  onEdit?: () => void;
 };
 
 // =========================
@@ -105,7 +104,6 @@ export default function ContactDetailPopUp({
   open,
   data,
   onClose,
-  onEdit,
 }: ContactDetailPopUpProps) {
   // =========================
   // STATES
@@ -765,33 +763,26 @@ export default function ContactDetailPopUp({
         </ResponsiveSection>
       </DetailBody>
 
-      {/* FOOTER */}
+{/* FOOTER */}
 
-      <DetailFooter>
-        <ActionButton
-          variant="success"
-          icon={
-            <MessageCircle
-              size={16}
-            />
-          }
-          onClick={() =>
-            openWhatsApp(
-              data.phone
-            )
-          }
-        >
-          WhatsApp
-        </ActionButton>
-
-        <ActionButton
-          variant="secondary"
-          onClick={onEdit}
-        >
-          Edit
-        </ActionButton>
-      </DetailFooter>
-    </DetailDrawer>
+<DetailFooter>
+  <ActionButton
+    variant="success"
+    icon={
+      <MessageCircle
+        size={16}
+      />
+    }
+    onClick={() =>
+      openWhatsApp(
+        data.phone
+      )
+    }
+  >
+    WhatsApp
+  </ActionButton>
+</DetailFooter>
+</DetailDrawer>
   );
 }
 

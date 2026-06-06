@@ -25,13 +25,15 @@ import ContactsTable from "@/components/contacts/ContactsTable";
 
 import ContactsMobileCard from "@/components/contacts/ContactsMobileCard";
 
-import ViewActions from "@/components/actions/ViewActions";
+import ContactActionsDropdown from "@/components/contacts/ContactActionsDropdown";
 
 import PriorityBadge from "@/components/contacts/PriorityBadge";
 
 import FollowupBadge from "@/components/contacts/FollowupBadge";
 
 import ContactTypeBadge from "@/components/contacts/ContactTypeBadge";
+
+import {formatRelativeDate,} from "@/src/utils/formatRelativeDate";
 
 import { supabase } from "@/lib/supabase";
 
@@ -49,28 +51,8 @@ import {
 
 const columns = [
   {
-    key: "no",
-    label: "No",
-  },
-
-  {
     key: "name",
-    label: "Name",
-  },
-
-  {
-    key: "phone",
-    label: "Phone",
-  },
-
-  {
-    key: "contact_type",
-    label: "Contact Type",
-  },
-
-  {
-    key: "priority",
-    label: "Priority",
+    label: "Contact",
   },
 
   {
@@ -79,13 +61,23 @@ const columns = [
   },
 
   {
+    key: "priority",
+    label: "Priority",
+  },
+
+  {
+    key: "last_contacted",
+    label: "Last Contacted",
+  },
+
+  {
     key: "next_followup_at",
-    label: "Follow Up",
+    label: "Next Follow Up",
   },
 
   {
     key: "action",
-    label: "Action",
+    label: "",
   },
 ];
 
@@ -326,7 +318,12 @@ export default function ContactsPage() {
               startIndex +
               index +
               1,
-
+            last_contacted:
+              item.last_whatsapp_opened_at
+                ? formatRelativeDate(
+                    item.last_whatsapp_opened_at
+                  )
+                : "-",
             contact_type: (
 
               <ContactTypeBadge
@@ -387,141 +384,75 @@ export default function ContactsPage() {
             ),
 
             action: (
+  <ContactActionsDropdown
+    contact={item}
+    onWhatsApp={async () => {
+      await openWhatsApp({
+        phone: item.phone,
+        contactId: item.contact_id,
+        source: "Contacts Table",
+      });
 
-              <div
-                onClick={(e) =>
-                  e.stopPropagation()
-                }
-              >
+      fetchContacts();
+    }}
+    onCreateLead={() => {
+      setSelectedContact({
+        contact_id:
+          item.contact_id,
 
-                <ViewActions
-                  items={[
+        name:
+          item.name,
 
-                    {
-                      label:
-                        "WhatsApp",
+        phone:
+          item.phone,
 
-                      onClick:
-                        async () => {
+        source_id:
+          item.source_id,
 
-                          await openWhatsApp({
-                            phone:
-                              item.phone,
+        company:
+          item.company,
 
-                            contactId:
-                              item.contact_id,
+        contact_type:
+          item.contact_type,
+      });
 
-                            source:
-                              "Contacts Table",
-                          });
+      setOpenAddLeadModal(
+        true
+      );
+    }}
+    onEdit={() => {
+      setEditData(item);
 
-                          fetchContacts();
-                        },
-                    },
+      setOpenEditModal(
+        true
+      );
+    }}
+    onDelete={async () => {
+      const confirmDelete =
+        window.confirm(
+          "Delete this contact?"
+        );
 
-                    {
-                      label:
-                        "Create Lead",
+      if (!confirmDelete)
+        return;
 
-                      onClick: () => {
+      const { error } =
+        await supabase
+          .from("contacts")
+          .delete()
+          .eq(
+            "contact_id",
+            item.contact_id
+          );
 
-                        setSelectedContact({
+      if (error) {
+        console.log(error);
+        return;
+      }
 
-                          contact_id:
-                            item.contact_id,
-
-                          name:
-                            item.name,
-
-                          phone:
-                            item.phone,
-
-                          source_id:
-                            item.source_id,
-
-                          company:
-                            item.company,
-
-                          contact_type:
-                            item.contact_type,
-                        });
-
-                        setOpenAddLeadModal(
-                          true
-                        );
-                      },
-                    },
-
-                    {
-                      label:
-                        "Edit",
-
-                      onClick: () => {
-
-                        setEditData(
-                          item
-                        );
-
-                        setOpenEditModal(
-                          true
-                        );
-                      },
-                    },
-
-                    {
-                      label:
-                        "Delete",
-
-                      danger: true,
-
-                      onClick:
-                        async () => {
-
-                          const confirmDelete =
-                            window.confirm(
-                              "Delete this contact?"
-                            );
-
-                          if (
-                            !confirmDelete
-                          ) {
-
-                            return;
-                          }
-
-                          const {
-                            error,
-                          } = await supabase
-
-                            .from(
-                              "contacts"
-                            )
-
-                            .delete()
-
-                            .eq(
-                              "contact_id",
-                              item.contact_id
-                            );
-
-                          if (
-                            error
-                          ) {
-
-                            console.log(
-                              error
-                            );
-
-                            return;
-                          }
-
-                          fetchContacts();
-                        },
-                    },
-                  ]}
-                />
-
-              </div>
+      fetchContacts();
+    }}
+  />
 
             ),
           })
@@ -639,49 +570,85 @@ export default function ContactsPage() {
           }}
         />
 
-        {/* MOBILE */}
-
         <ContactsMobileCard
-          data={data}
-          loading={loading}
-          onRowClick={(
-            row
-          ) => {
+  data={data}
+  loading={loading}
+  onRowClick={(row) => {
+    setSelectedRow(row);
+  }}
+  onCreateLead={(row) => {
+    setSelectedContact({
+      contact_id:
+        row.contact_id,
 
-            setSelectedRow(
-              row
-            );
-          }}
-          onCreateLead={(
-            row
-          ) => {
+      name:
+        row.name,
 
-            setSelectedContact({
+      phone:
+        row.phone,
 
-              contact_id:
-                row.contact_id,
+      source_id:
+        row.source_id,
 
-              name:
-                row.name,
+      company:
+        row.company,
 
-              phone:
-                row.phone,
+      contact_type:
+        row.contact_type,
+    });
 
-              source_id:
-                row.source_id,
+    setOpenAddLeadModal(
+      true
+    );
+  }}
+  onEditContact={(row) => {
+    setEditData(row);
 
-              company:
-                row.company,
+    setOpenEditModal(
+      true
+    );
+  }}
+  onDeleteContact={async (
+    row
+  ) => {
+    const confirmDelete =
+      window.confirm(
+        "Delete this contact?"
+      );
 
-              contact_type:
-                row.contact_type,
-            });
+    if (!confirmDelete)
+      return;
 
-            setOpenAddLeadModal(
-              true
-            );
-          }}
-        />
+    const { error } =
+      await supabase
+        .from("contacts")
+        .delete()
+        .eq(
+          "contact_id",
+          row.contact_id
+        );
+
+    if (error) {
+      console.log(error);
+      return;
+    }
+
+    fetchContacts();
+  }}
+  onWhatsApp={async (
+    row
+  ) => {
+    await openWhatsApp({
+      phone: row.phone,
+      contactId:
+        row.contact_id,
+      source:
+        "Contacts Mobile",
+    });
+
+    fetchContacts();
+  }}
+/>
 
         {/* TABLE */}
 
@@ -822,16 +789,7 @@ export default function ContactsPage() {
               null
             )
           }
-          onEdit={() => {
-
-            setEditData(
-              selectedRow
-            );
-
-            setOpenEditModal(
-              true
-            );
-          }}
+  
         />
 
       </div>
